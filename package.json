@@ -14,9 +14,12 @@
   },
   "dependencies": {
     "@mlc-ai/web-llm": "0.2.85",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "wanix": "0.4.0-rc2"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^5.2.0",
     "esbuild": "0.28.2",
     "vite": "7.3.6"
   }

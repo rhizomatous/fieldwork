@@ -43,6 +43,12 @@ flowchart LR
     R --> I["Sandboxed app iframe"]
 ```
 
+## React shell
+
+Fieldwork uses React with Vite. `index.html` is the entry point; `src/App.jsx` composes the agent, inference, preview, and console panels in `src/components/`. The generated workspace app remains vanilla HTML/CSS/JavaScript.
+
+`src/fieldwork.js` creates one session per page. `src/session.js` owns runtime events, inference requests, commands, and an immutable state snapshot. React subscribes with `useSyncExternalStore`; components never construct the VM or worker. React Strict Mode is enabled. The console stays mounted when hidden, and the iframe document changes only when workspace files change or the user refreshes it, preserving app state during metrics and conversation updates.
+
 ## Execution boundaries
 
 - `guest/supervisor.mjs` runs **inside Linux**, embeds the real Pi `Agent` core with Pi's built-in read/write/edit/bash tools, receives UI commands, and writes agent events to `/bridge`. The full Pi CLI remains a research target; the working build uses its smaller SDK path.
@@ -75,9 +81,10 @@ No guest network device is configured. Model downloads are the main external req
 
 ## Validation
 
-- Production frontend build and protocol/preview tests pass.
+- Production frontend build and nine protocol/preview/session tests pass, including subscription lifecycles, inference routing, cancellation, and worker failure recovery.
 - Pi version and RPC startup verified in a network-disabled 32-bit Docker container.
 - Deterministic bridge smoke test: Pi executed its real `edit` tool, changed an HTML title, received the tool result, and completed its turn. The inference response in this isolated test was a fixture, not a model-quality test.
+- React migration browser check: model load, Linux boot, OPFS restoration, console toggling, and a real read/edit turn passed. The preview counter survived unrelated UI updates; the final edit appeared as revision 2. No browser errors or warnings were observed.
 - Real browser end-to-end test: Qwen2.5-Coder 1.5B running on WebGPU selected Pi's `read` and `edit` tools inside v86. The heading changed to “A little more wonder.” in the live preview. After a page reload and Linux restart, the edited heading was restored from OPFS.
 - Observed GPU decode speed was approximately 43–47 tokens/second on this machine; this is a single-session observation, not a benchmark.
 - Short prompts can still elicit a false claim of an edit, even after reading the file. Each turn requires an initial inspection; the UI reports when no app files changed. Explicit tool-directed prompts worked in the browser test. Broader coding-task reliability and larger model options remain unvalidated.
