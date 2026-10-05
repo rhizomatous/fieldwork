@@ -1,0 +1,10 @@
+*
+!guest
+!guest/**
+!.cache
+!.cache/package
+!.cache/package/dist
+!.cache/package/dist/wanix-linux.tgz
+!.cache/agent.bundle.mjs
+!.cache/pi-assets
+!.cache/pi-assets/**

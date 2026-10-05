@@ -1,0 +1,23 @@
+{
+  "name": "agent-in-browser",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test tests/*.test.mjs",
+    "test:guest": "node scripts/smoke-guest.mjs",
+    "assets": "node scripts/prepare-assets.mjs",
+    "guest": "bash scripts/build-guest.sh"
+  },
+  "dependencies": {
+    "@mlc-ai/web-llm": "0.2.85",
+    "wanix": "0.4.0-rc2"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "vite": "7.3.6"
+  }
+}

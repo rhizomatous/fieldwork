@@ -1,0 +1,5 @@
+export PATH=/opt/agent/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+mkdir -p /bridge /project
+echo 'Starting Pi browser bridge...'
+export PI_PACKAGE_DIR=/opt/agent/pi
+node /opt/agent/agent.bundle.mjs >/bridge/supervisor.log 2>&1 &

@@ -1,0 +1,150 @@
+// Deterministic transport/tool test. Model responses are explicit fixtures.
+import fs from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { starter } from "../src/starter.js";
+
+const root = await fs.mkdtemp(path.join(os.tmpdir(), "fieldwork-smoke-"));
+const bridge = path.join(root, "bridge"),
+  project = path.join(root, "project");
+await fs.mkdir(bridge);
+await fs.mkdir(project);
+for (const [file, content] of Object.entries(starter))
+  await fs.writeFile(path.join(project, file), content);
+const container = execFileSync(
+  "docker",
+  [
+    "run",
+    "-d",
+    "--rm",
+    "--platform",
+    "linux/386",
+    "--network",
+    "none",
+    "-v",
+    `${bridge}:/bridge`,
+    "-v",
+    `${project}:/project`,
+    "agent-in-browser:dev",
+    "node",
+    "/opt/agent/agent.bundle.mjs",
+  ],
+  { encoding: "utf8" },
+).trim();
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+async function json(file) {
+  try {
+    return JSON.parse(await fs.readFile(path.join(bridge, file), "utf8"));
+  } catch {
+    return null;
+  }
+}
+async function events() {
+  return Promise.all(
+    (await fs.readdir(bridge))
+      .filter((name) => /^event-\d+\.json$/.test(name))
+      .sort()
+      .map(json),
+  );
+}
+async function until(fn, description) {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    const found = await fn();
+    if (found) return found;
+    const fatal = (await events()).find((event) => event?.type === "fatal");
+    if (fatal) throw new Error(fatal.message);
+    await delay(200);
+  }
+  throw new Error(`Timed out: ${description}`);
+}
+async function command(type, message) {
+  await fs.writeFile(
+    path.join(bridge, "command.tmp"),
+    JSON.stringify({ id: randomUUID(), type, message }),
+  );
+  await fs.rename(
+    path.join(bridge, "command.tmp"),
+    path.join(bridge, "command.json"),
+  );
+}
+async function respond(request, action) {
+  await fs.writeFile(
+    path.join(bridge, `response-${request.id}.json`),
+    JSON.stringify({ id: request.id, action }),
+  );
+}
+try {
+  await until(
+    async () => (await events()).find((event) => event?.type === "ready"),
+    "Pi startup",
+  );
+  console.log("PASS: bundled Pi starts in Linux without network access");
+  await command("prompt", "Change the HTML title to Bridge verified.");
+  let request = await until(() => json("request.json"), "first model request");
+  await respond(request, {
+    type: "tool",
+    name: "read",
+    arguments: { path: "index.html" },
+  });
+  const first = request.id;
+  request = await until(async () => {
+    const value = await json("request.json");
+    return value?.id !== first && value;
+  }, "read continuation");
+  assert.ok(
+    request.context.messages.some(
+      (message) => message.role === "toolResult" && !message.isError,
+    ),
+  );
+  await respond(request, {
+    type: "tool",
+    name: "edit",
+    arguments: {
+      path: "index.html",
+      edits: [
+        {
+          oldText: "<title>Little things</title>",
+          newText: "<title>Bridge verified</title>",
+        },
+      ],
+    },
+  });
+  const second = request.id;
+  request = await until(async () => {
+    const value = await json("request.json");
+    return value?.id !== second && value;
+  }, "edit continuation");
+  assert.match(
+    await fs.readFile(path.join(project, "index.html"), "utf8"),
+    /<title>Bridge verified<\/title>/,
+  );
+  await respond(request, { type: "message", text: "Title changed." });
+  await until(
+    async () => (await events()).find((event) => event?.type === "agent_end"),
+    "turn completion",
+  );
+  console.log(
+    "PASS: real Pi read/edit tools, tool-result continuation, final response",
+  );
+  const last = request.id;
+  await command("prompt", "Make another change.");
+  await until(async () => {
+    const value = await json("request.json");
+    return value?.id !== last && value;
+  }, "cancel request");
+  await command("abort");
+  await until(
+    async () =>
+      (await events()).filter((event) => event?.type === "agent_end").length ===
+      2,
+    "cancellation",
+  );
+  console.log("PASS: cancellation interrupts a pending inference request");
+} finally {
+  execFileSync("docker", ["rm", "-f", container], { stdio: "ignore" });
+  await fs.rm(root, { recursive: true, force: true });
+}
