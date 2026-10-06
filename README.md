@@ -97,3 +97,21 @@ Built on [Wanix](https://github.com/tractordev/wanix), [v86](https://github.com/
 ### Conversation reset
 
 **Reset chat** clears the displayed conversation and resets Pi’s context after the guest acknowledges the command. It keeps app files and the loaded model. Reset is disabled while the agent is working; stop the current turn first. Rebuild the guest with `npm run guest` after updating from a version without reset acknowledgements.
+
+## Color system
+
+`src/styles/colors.css` is the source of truth for Fieldwork aide's colors, imported by `src/style.css`. Use semantic CSS variables in component styles rather than literal colors. Existing colors are preserved; this is an extraction, not a new theme.
+
+| Role | Tokens |
+| --- | --- |
+| Surfaces | `--color-bg-canvas`, `--color-bg-surface`, `--color-bg-hover`, `--color-bg-preview`, `--color-bg-frame`, `--color-bg-terminal` |
+| Text | `--color-text`, `--color-text-muted`, `--color-text-placeholder`, `--color-text-on-accent` |
+| Borders | `--color-border`, `--color-border-strong` |
+| Actions | `--color-accent`, `--color-accent-hover`, `--color-focus`, `--color-focus-halo` |
+| Status | `--color-status-idle`, `--color-status-ready`, `--color-status-busy` |
+| Destructive/error | `--color-danger`, `--color-danger-surface`, `--color-danger-border`, `--color-danger-hover` |
+| Shadows | `--color-shadow-frame`, `--color-shadow-overlay` |
+
+For example, use `color: var(--color-text-muted)` for supporting copy and `border: 1px solid var(--color-border)` for dividers. Ready indicators and focus alias the accent; translucent variants derive from their base tokens using relative OKLCH colors so they stay in sync. Shadow geometry stays in component CSS. `transparent`, `inherit`, and `currentColor` remain valid structural values. In forced-color mode, focus uses the system `Highlight` color. The browser theme-color in `index.html` is a deliberate static duplicate for simplicity.
+
+The editable starter app is a separate document with its own palette; these tokens do not leak into it or override Wanix's terminal internals.

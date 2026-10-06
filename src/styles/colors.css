@@ -1,0 +1,48 @@
+/* Fieldwork aide color tokens.
+ * Literal palette values live here; component styles consume semantic roles.
+ * The editable project and Wanix's terminal internals own their own themes.
+ */
+:root {
+  /* Surfaces, from page canvas to embedded content. */
+  --color-bg-canvas: oklch(97% 0.008 90);
+  --color-bg-surface: oklch(99% 0.004 90);
+  --color-bg-hover: oklch(94% 0.012 90);
+  --color-bg-preview: oklch(92% 0.01 90);
+  --color-bg-frame: oklch(96% 0.012 90);
+  --color-bg-terminal: oklch(20% 0.005 90);
+
+  /* Content and boundaries. */
+  --color-text: oklch(28% 0.015 90);
+  --color-text-muted: oklch(50% 0.015 90);
+  --color-text-placeholder: oklch(62% 0.01 90);
+  --color-text-on-accent: oklch(98% 0.006 90);
+  --color-border: oklch(89% 0.012 90);
+  --color-border-strong: oklch(82% 0.015 90);
+
+  /* Brand and interaction. */
+  --color-accent: oklch(43% 0.065 145);
+  --color-accent-hover: oklch(36% 0.06 145);
+  --color-focus: var(--color-accent);
+  --color-focus-halo: oklch(from var(--color-focus) l c h / 0.1);
+
+  /* Status and destructive actions. */
+  --color-status-idle: oklch(73% 0.01 90);
+  --color-status-ready: var(--color-accent);
+  --color-status-busy: oklch(64% 0.12 75);
+  --color-danger: oklch(47% 0.16 30);
+  --color-danger-surface: oklch(94% 0.03 30);
+  --color-danger-border: oklch(from var(--color-danger) l c h / 0.3);
+  --color-danger-hover: oklch(from var(--color-danger) l c h / 0.06);
+
+  /* Shared shadow hue; opacity reflects elevation. */
+  --color-shadow: oklch(20% 0.01 90);
+  --color-shadow-frame: oklch(from var(--color-shadow) l c h / 0.06);
+  --color-shadow-overlay: oklch(from var(--color-shadow) l c h / 0.18);
+}
+
+/* Let the user's system palette own focus in high-contrast mode. */
+@media (forced-colors: active) {
+  :root {
+    --color-focus: Highlight;
+  }
+}
