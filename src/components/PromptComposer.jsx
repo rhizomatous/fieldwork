@@ -1,3 +1,4 @@
+import "./PromptComposer.css";
 import { useState } from "react";
 import { ChatBox } from "../design-system/ChatBox.jsx";
 

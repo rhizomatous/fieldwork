@@ -1,0 +1,71 @@
+.conversation {
+  flex: 1;
+  overflow: auto;
+  padding: 26px 30px;
+  scroll-behavior: smooth;
+}
+.message {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-message);
+}
+.message .speaker {
+  font: var(--font-size-caption) var(--font-family-mono);
+  letter-spacing: var(--letter-spacing-caption);
+  color: var(--color-accent);
+  display: block;
+  margin-bottom: 5px;
+}
+.message p {
+  white-space: pre-wrap;
+  margin: 0;
+  overflow-wrap: anywhere;
+  max-width: 70ch;
+}
+.message.error p {
+  color: var(--color-danger);
+}
+.tool-event {
+  font: var(--font-size-meta) var(--font-family-mono);
+  color: var(--color-text-muted);
+  padding: 9px 0;
+  overflow-wrap: anywhere;
+}
+.tool-event strong {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+}
+.tool-event details {
+  margin-top: 5px;
+}
+.tool-event pre {
+  white-space: pre-wrap;
+  max-height: 140px;
+  overflow: auto;
+  font-size: var(--font-size-meta);
+}
+@media (min-height: 900px) {
+  .conversation {
+    padding-top: 42px;
+  }
+}
+@media (max-width: 900px) {
+  .conversation {
+    padding: 22px;
+  }
+}
+@media (max-width: 680px) {
+  .conversation {
+    max-height: 440px;
+  }
+}
+
+.conversation.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.conversation > .ds-empty-state {
+  max-width: 280px;
+}

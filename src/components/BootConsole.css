@@ -1,0 +1,27 @@
+#console-panel {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 5;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 10px 50px var(--color-shadow-overlay);
+  max-height: 60vh;
+  overflow: auto;
+}
+#runtime-mount {
+  background: var(--color-bg-terminal);
+}
+#diagnostics {
+  font: var(--font-size-meta) var(--font-family-mono);
+  max-height: 140px;
+  overflow: auto;
+  padding: 12px 20px;
+  white-space: pre-wrap;
+  margin: 0;
+}
+#console-panel > .ds-empty-state {
+  padding: 38px 24px;
+}

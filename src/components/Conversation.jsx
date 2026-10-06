@@ -1,3 +1,4 @@
+import "./Conversation.css";
 import { EmptyState } from "../design-system/EmptyState.jsx";
 import { useLayoutEffect, useRef } from "react";
 

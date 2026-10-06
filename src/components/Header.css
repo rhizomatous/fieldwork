@@ -1,0 +1,21 @@
+.app-header {
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--color-border);
+}
+.app-header > .wordmark {
+  margin-left: -4px;
+}
+@media (max-width: 900px) {
+  .app-header {
+    padding: 0 18px;
+  }
+}
+@media (max-width: 680px) {
+  .app-header {
+    height: 58px;
+  }
+}

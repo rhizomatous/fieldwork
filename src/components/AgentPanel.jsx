@@ -1,3 +1,4 @@
+import "./AgentPanel.css";
 import { Button } from "../design-system/Button.jsx";
 import { StatusIndicator } from "../design-system/StatusIndicator.jsx";
 import { Conversation } from "./Conversation.jsx";

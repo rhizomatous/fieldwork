@@ -100,7 +100,7 @@ Built on [Wanix](https://github.com/tractordev/wanix), [v86](https://github.com/
 
 ## Shared React components
 
-Each component in `src/design-system` imports its own adjacent CSS file. Import components directly from their JSX files; shared color and typography tokens load once in `src/main.jsx`; app-specific layout stays in `src/style.css`, and runtime state/actions stay in the panels.
+Each component in `src/design-system` imports its own adjacent CSS file. Import components directly from their JSX files; shared color and typography tokens load once in `src/main.jsx`; app layout lives in `src/App.css`, and each panel imports its own adjacent CSS file. `src/style.css` contains global defaults and shared pane-heading/runtime-status styles. Runtime state/actions stay in the panels.
 
 | Component | API |
 | --- | --- |

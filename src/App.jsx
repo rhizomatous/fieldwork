@@ -1,3 +1,4 @@
+import "./App.css";
 import { useRef, useState, useSyncExternalStore } from "react";
 import { Header } from "./components/Header.jsx";
 import { AgentPanel } from "./components/AgentPanel.jsx";

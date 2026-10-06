@@ -1,0 +1,9 @@
+.prompt-area {
+  padding: 0 24px 12px;
+}
+@media (max-width: 900px) {
+  .prompt-area {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
