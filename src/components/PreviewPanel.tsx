@@ -1,12 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 import "./PreviewPanel.css";
 import { Button } from "../design-system/Button.tsx";
 import { EmptyState } from "../design-system/EmptyState.tsx";
 import { buildPreview } from "../protocol.js";
-import type { PanelProps } from "../types.ts";
+import type { PanelProps, ProjectFile } from "../types.ts";
+
+const WorkspaceEditor = lazy(() => import("./WorkspaceEditor.tsx"));
+const tabs = ["Preview", "index.html", "script.js", "style.css"] as const;
+type WorkspaceTab = (typeof tabs)[number];
 
 export function PreviewPanel({ state, session }: PanelProps) {
+  const [tab, setTab] = useState<WorkspaceTab>("Preview");
+  const [editorsOpened, setEditorsOpened] = useState(false);
+  function selectTab(next: WorkspaceTab) {
+    setTab(next);
+    if (next !== "Preview") {
+      setEditorsOpened(true);
+    }
+  }
   const [error, setError] = useState<{ channel: string; text: string } | null>(
     null,
   );
@@ -47,9 +59,45 @@ export function PreviewPanel({ state, session }: PanelProps) {
   const errorText =
     preview.error || (error?.channel === preview.channel ? error.text : "");
   return (
-    <section className="preview-panel" aria-labelledby="preview-title">
+    <section className="preview-panel" aria-label="Workspace">
       <div className="pane-heading">
-        <h2 id="preview-title">Preview</h2>
+        <div
+          className="workspace-tabs"
+          role="tablist"
+          aria-label="Workspace views"
+        >
+          {tabs.map((name, index) => (
+            <button
+              key={name}
+              id={`tab-${name}`}
+              role="tab"
+              type="button"
+              aria-selected={tab === name}
+              aria-controls={`panel-${name}`}
+              tabIndex={tab === name ? 0 : -1}
+              onClick={() => selectTab(name)}
+              onKeyDown={(event) => {
+                let next = index;
+                if (event.key === "ArrowRight") {
+                  next = (index + 1) % tabs.length;
+                } else if (event.key === "ArrowLeft") {
+                  next = (index + tabs.length - 1) % tabs.length;
+                } else if (event.key === "Home") {
+                  next = 0;
+                } else if (event.key === "End") {
+                  next = tabs.length - 1;
+                } else {
+                  return;
+                }
+                event.preventDefault();
+                selectTab(tabs[next]);
+                document.getElementById(`tab-${tabs[next]}`)?.focus();
+              }}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
         <div className="preview-tools">
           <Button
             disabled={!state.files}
@@ -65,7 +113,13 @@ export function PreviewPanel({ state, session }: PanelProps) {
           </Button>
         </div>
       </div>
-      <div className="preview-stage">
+      <div
+        className="preview-stage"
+        id="panel-Preview"
+        role="tabpanel"
+        aria-labelledby="tab-Preview"
+        hidden={tab !== "Preview"}
+      >
         {state.files ? (
           <iframe
             ref={frame}
@@ -94,7 +148,39 @@ export function PreviewPanel({ state, session }: PanelProps) {
           </EmptyState>
         )}
       </div>
-      <p id="preview-error" role="status" hidden={!errorText}>
+      {tabs
+        .filter((name): name is ProjectFile => name !== "Preview")
+        .map((file) => (
+          <div
+            key={file}
+            className="editor-panel"
+            id={`panel-${file}`}
+            role="tabpanel"
+            aria-labelledby={`tab-${file}`}
+            hidden={tab !== file}
+          >
+            {state.files && editorsOpened ? (
+              <Suspense
+                fallback={
+                  <div className="editor-placeholder">Loading editor…</div>
+                }
+              >
+                <WorkspaceEditor file={file} state={state} session={session} />
+              </Suspense>
+            ) : (
+              <div className="editor-placeholder">
+                <EmptyState title="Your workspace files" headingLevel={3}>
+                  Start Linux to open and edit {file}.
+                </EmptyState>
+              </div>
+            )}
+          </div>
+        ))}
+      <p
+        id="preview-error"
+        role="status"
+        hidden={!errorText || tab !== "Preview"}
+      >
         {errorText ? `Preview: ${errorText}` : ""}
       </p>
     </section>

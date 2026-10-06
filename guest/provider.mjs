@@ -12,7 +12,7 @@ export default function browserProvider(pi) {
   pi.on("agent_start", () => {
     rounds = 0;
   });
-  
+
   pi.registerProvider("browser", {
     baseUrl: "http://browser.invalid",
     apiKey: "local-only",
@@ -60,7 +60,7 @@ export default function browserProvider(pi) {
           if (options?.signal?.aborted) {
             throw new Error("Stopped");
           }
-          
+
           stream.push({ type: "start", partial: output });
           fs.writeFileSync(
             `${dir}/request.tmp`,
@@ -70,12 +70,12 @@ export default function browserProvider(pi) {
 
           const deadline = Date.now() + 240_000;
           let response;
-          
+
           while (Date.now() < deadline) {
             if (options?.signal?.aborted) {
               throw new Error("Stopped");
             }
-          
+
             try {
               response = JSON.parse(fs.readFileSync(responsePath, "utf8"));
               break;
@@ -84,39 +84,39 @@ export default function browserProvider(pi) {
                 throw error;
               }
             }
-          
+
             await pause(100);
           }
-          
+
           if (!response) {
             throw new Error("Local inference timed out");
           }
-          
+
           if (response.error) {
             throw new Error(response.error);
           }
-          
+
           if (response.usage) {
             Object.assign(output.usage, response.usage);
           }
-          
+
           const action = response.action;
-          
+
           if (action.type === "tool") {
             if (!context.tools?.some((tool) => tool.name === action.name)) {
               throw new Error("Unknown tool requested");
             }
-          
+
             const block = {
               type: "toolCall",
               id,
               name: action.name,
               arguments: action.arguments,
             };
-          
+
             output.content.push(block);
             output.stopReason = "toolUse";
-          
+
             stream.push({
               type: "toolcall_start",
               contentIndex: 0,
@@ -139,7 +139,7 @@ export default function browserProvider(pi) {
             typeof action.text === "string"
           ) {
             output.content.push({ type: "text", text: action.text });
-          
+
             stream.push({
               type: "text_start",
               contentIndex: 0,
@@ -168,7 +168,7 @@ export default function browserProvider(pi) {
         } catch (error) {
           output.stopReason = options?.signal?.aborted ? "aborted" : "error";
           output.errorMessage = error.message;
-          
+
           stream.push({
             type: "error",
             reason: output.stopReason,

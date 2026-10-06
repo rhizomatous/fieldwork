@@ -17,6 +17,12 @@
   --color-border: oklch(89% 0.012 90);
   --color-border-strong: oklch(82% 0.015 90);
 
+  /* Editor syntax. */
+  --color-code-keyword: oklch(46% 0.12 310);
+  --color-code-number: oklch(46% 0.09 60);
+  --color-code-property: oklch(44% 0.08 240);
+  --color-code-selection: oklch(from var(--color-accent) l c h / 0.18);
+
   /* Brand and interaction. */
   --color-accent: oklch(43% 0.065 145);
   --color-accent-hover: oklch(36% 0.06 145);
@@ -41,6 +47,9 @@
 /* Warm charcoal surfaces with a lighter sage accent. */
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --color-code-keyword: oklch(78% 0.1 310);
+  --color-code-number: oklch(80% 0.1 70);
+  --color-code-property: oklch(78% 0.07 235);
   --color-bg-canvas: oklch(21% 0.008 90);
   --color-bg-surface: oklch(24% 0.008 90);
   --color-bg-hover: oklch(29% 0.012 90);

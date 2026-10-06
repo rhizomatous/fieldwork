@@ -52,7 +52,7 @@ export function LinuxPanel({
           variant="secondary"
           size="small"
           destructive
-          disabled={state.busy || !state.linuxReady}
+          disabled={state.busy || !!state.savingFile || !state.linuxReady}
           onClick={onReset}
           title="Replace index.html, style.css, and script.js with starter files and reset Pi’s session"
         >

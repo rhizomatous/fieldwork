@@ -1,6 +1,12 @@
 import { gpuSupportError } from "./gpu-support.js";
 import { buildPreview } from "./protocol.js";
-import type { Runtime, SessionState, Status, WorkerMessage } from "./types.ts";
+import type {
+  ProjectFile,
+  Runtime,
+  SessionState,
+  Status,
+  WorkerMessage,
+} from "./types.ts";
 
 export const models = [
   { id: "Qwen3-4B-q4f16_1-MLC", label: "Qwen3 4B", memory: "3.4" },
@@ -29,6 +35,7 @@ export function createSession({
     assistantId: number | null = null,
     nextId = 0;
   let state: SessionState = {
+    savingFile: null,
     linuxReady: false,
     linuxStatus: status("Off"),
     bootStarted: false,
@@ -394,7 +401,13 @@ export function createSession({
     },
     async send(text: string) {
       text = text.trim();
-      if (!text || state.busy || !state.linuxReady || !state.modelReady) {
+      if (
+        !text ||
+        state.busy ||
+        state.savingFile ||
+        !state.linuxReady ||
+        !state.modelReady
+      ) {
         return false;
       }
       update({ busy: true });
@@ -419,6 +432,26 @@ export function createSession({
         const error = cause instanceof Error ? cause : new Error(String(cause));
         message("WORKSPACE", error.message, true);
         done();
+      }
+    },
+    async saveFile(file: ProjectFile, content: string, expected: string) {
+      if (!state.linuxReady || !state.files) {
+        throw new Error("Start Linux before saving files.");
+      }
+      if (state.busy || state.savingFile) {
+        throw new Error("Wait for the current operation before saving.");
+      }
+      if (state.files[file] !== expected) {
+        throw new Error(
+          "This file changed in the workspace. Reload it before saving.",
+        );
+      }
+      update({ savingFile: file });
+      try {
+        const files = await runtime.saveFile(file, content, expected);
+        update({ files, revision: state.revision + 1 });
+      } finally {
+        update({ savingFile: null });
       }
     },
     refresh() {
@@ -446,7 +479,7 @@ export function createSession({
       }
     },
     async reset() {
-      if (state.busy || !state.linuxReady) {
+      if (state.busy || state.savingFile || !state.linuxReady) {
         return;
       }
       update({ busy: true });

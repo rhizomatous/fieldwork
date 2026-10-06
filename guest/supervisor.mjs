@@ -73,7 +73,7 @@ try {
   });
 
   let lastCommand = "";
-  
+
   setInterval(() => {
     try {
       const command = JSON.parse(
@@ -85,7 +85,7 @@ try {
       }
 
       lastCommand = command.id;
-      
+
       if (command.type === "abort") {
         agent.abort();
       } else if (command.type === "new_session") {
@@ -94,7 +94,7 @@ try {
         }
 
         agent.reset();
-        
+
         emit({
           type: "response",
           id: command.id,
@@ -122,6 +122,6 @@ try {
   }, 150);
 } catch (error) {
   emit({ type: "fatal", message: error.stack || error.message });
-  
+
   process.exitCode = 1;
 }

@@ -1,0 +1,28 @@
+.workspace-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--color-bg-surface);
+}
+.workspace-editor > .cm-theme {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.editor-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-border);
+}
+.editor-footer > span {
+  margin-right: auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-meta);
+  line-height: var(--line-height-body);
+}
+.editor-footer > button {
+  flex-shrink: 0;
+}

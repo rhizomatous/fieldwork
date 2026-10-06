@@ -89,6 +89,13 @@ export function AboutDialog({
             </a>
             .
           </li>
+          <li>
+            Code editor panels are supplied by{" "}
+            <a target="_blank" rel="noreferrer" href="https://codemirror.net/">
+              Codemirror
+            </a>
+            .
+          </li>
         </ul>
         <p>
           If you're curious about specifics,{" "}

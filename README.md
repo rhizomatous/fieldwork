@@ -182,3 +182,9 @@ The title-bar Theme control offers System (the default), Light, and Dark. The se
 The React shell, design-system components, and session controller use strict TypeScript. Vite serves `.ts` and `.tsx` directly during development; `npm run dev` requires no preceding compilation. `npm run typecheck` runs `tsc --noEmit` for validation only, and is included in `npm run check`. The production build remains Vite's existing build.
 
 The inference worker, Wanix runtime adapter, protocol/GPU/starter helpers shared with standalone scripts, guest code, and Node scripts/tests remain JavaScript. Shared session and bridge contracts live in `src/types.ts`; the Wanix adapter exposes its event types through JSDoc. JavaScript modules are allowed at that boundary without enabling whole-project JS type checking. Tests import the TypeScript session directly using Node's native type stripping (Node 22.18+ or a newer supported release).
+
+## Workspace file editors
+
+The preview bar includes Preview, index.html, script.js, and style.css tabs. Start Linux to access the real workspace files. CodeMirror is loaded on demand when a file editor is opened, with HTML/CSS/JavaScript highlighting, line numbers, undo, and search. Editor colors use the Fieldwork theme tokens and update immediately with System/Light/Dark mode.
+
+Edits remain drafts until **Save** (or Cmd/Ctrl+S). Saving writes through Wanix to the shared project and refreshes Preview; switching tabs preserves the live preview and each editor's draft and undo history. Drafts are not persisted across page reloads. While the agent is working, editors are read-only. If an agent edit or reset changes a file with an unsaved draft, saving is blocked until you reload that file, so neither version is silently overwritten. Save failures retain the draft and display an error.

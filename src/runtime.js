@@ -194,6 +194,21 @@ export class LinuxRuntime extends EventTarget {
     await this.atomic(`bridge/response-${response.id}.json`, response);
   }
 
+  async saveFile(file, content, expected) {
+    if (!PROJECT_FILES.includes(file)) {
+      throw new Error("Unknown workspace file");
+    }
+    const path = `project/${file}`;
+    if ((await this.root.readText(path)) !== expected) {
+      throw new Error(
+        "This file changed in the workspace. Reload it before saving.",
+      );
+    }
+    await this.root.writeFile(`${path}.tmp`, content);
+    await this.root.rename(`${path}.tmp`, path);
+    return this.snapshot();
+  }
+
   async reset() {
     for (const file of PROJECT_FILES) {
       await this.root.writeFile(`project/${file}`, starter[file]);

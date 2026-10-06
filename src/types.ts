@@ -5,6 +5,8 @@ export type ProjectFiles = Record<
   "index.html" | "style.css" | "script.js",
   string
 >;
+export type ProjectFile = keyof ProjectFiles;
+
 export type ChatMessage = {
   id: number;
   text: string;
@@ -13,6 +15,7 @@ export type ChatMessage = {
   error?: boolean;
 };
 export interface SessionState {
+  savingFile: ProjectFile | null;
   linuxReady: boolean;
   linuxStatus: Status;
   bootStarted: boolean;
@@ -93,6 +96,11 @@ export interface Runtime {
   ): void;
   boot(mount: HTMLElement): Promise<void>;
   command(type: string, message?: string): Promise<void>;
+  saveFile(
+    file: ProjectFile,
+    content: string,
+    expected: string,
+  ): Promise<ProjectFiles>;
   reset(): Promise<void>;
   respond(response: InferenceResult): Promise<void>;
 }

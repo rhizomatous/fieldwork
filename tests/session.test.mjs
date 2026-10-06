@@ -32,6 +32,7 @@ function setup() {
 
   return {
     session,
+    runtime,
     worker,
     emit,
     commands,
@@ -45,15 +46,15 @@ test("subscriptions can detach and reattach without losing the session or bootin
   const t = setup();
   await t.session.boot({});
   t.emit("event", { type: "ready" });
-  
+
   const snapshot = t.session.getSnapshot();
   const unsubscribe = t.session.subscribe(() => {});
   unsubscribe();
-  
+
   t.session.subscribe(() => {});
-  
+
   await t.session.boot({});
-  
+
   assert.equal(t.boots(), 1);
   assert.equal(t.session.getSnapshot(), snapshot);
   assert.equal(snapshot.linuxReady, true);
@@ -65,37 +66,37 @@ test("a prompt routes inference and edits while metrics leave the preview files 
 
   await t.worker.onmessage({ data: { type: "loaded" } });
   await t.session.send("Change the title");
-  
+
   assert.deepEqual(t.commands, [["prompt", "Change the title"]]);
-  
+
   t.emit("event", { type: "agent_start" });
 
-  const files = t.session.getSnapshot().files;  
+  const files = t.session.getSnapshot().files;
   t.emit("inference", { id: "request-1", context: {} });
-  
+
   assert.equal(t.workerMessages.at(-1).type, "generate");
-  
+
   await t.worker.onmessage({
     data: { type: "tokens", id: "request-1", firstToken: 120, characters: 12 },
   });
-  
+
   assert.equal(t.session.getSnapshot().files, files);
-  
+
   await t.worker.onmessage({
     data: { type: "result", id: "stale", text: "ignore" },
   });
-  
+
   assert.equal(t.responses.length, 0);
-  
+
   await t.worker.onmessage({
     data: { type: "result", id: "request-1", text: "action" },
   });
-  
+
   assert.equal(t.responses[0].id, "request-1");
-  
+
   t.emit("snapshot", { ...starter, "index.html": "<h1>Updated</h1>" });
   t.emit("event", { type: "agent_end" });
-  
+
   assert.equal(t.session.getSnapshot().busy, false);
   assert.equal(t.session.getSnapshot().revision, 1);
   assert.ok(
@@ -108,27 +109,27 @@ test("a prompt routes inference and edits while metrics leave the preview files 
 test("stopping cancels both inference and the guest agent", async () => {
   const t = setup();
   t.emit("event", { type: "agent_start" });
-  
+
   await t.session.stop();
-  
+
   assert.deepEqual(t.workerMessages, [{ type: "cancel" }]);
   assert.deepEqual(t.commands, [["abort"]]);
-  
+
   t.emit("event", { type: "agent_end" });
-  
+
   assert.equal(t.session.getSnapshot().busy, false);
 });
 
 test("worker failure returns an error to a pending guest request and unlocks the UI", async () => {
   const t = setup();
   t.emit("event", { type: "ready" });
-  
+
   await t.worker.onmessage({ data: { type: "loaded" } });
-  
+
   t.emit("event", { type: "agent_start" });
   t.emit("inference", { id: "failed" });
   t.worker.onerror({ message: "GPU lost" });
-  
+
   assert.deepEqual(t.responses, [{ id: "failed", error: "GPU lost" }]);
   assert.equal(t.session.getSnapshot().busy, false);
   assert.equal(t.session.getSnapshot().modelReady, false);
@@ -142,13 +143,13 @@ test("reset chat clears the conversation but preserves workspace files and loade
   await t.worker.onmessage({ data: { type: "loaded" } });
   const files = { ...starter, "index.html": "<h1>Keep this</h1>" };
   t.emit("snapshot", files);
-  
+
   await t.session.send("Old conversation");
-  
+
   t.emit("event", { type: "agent_end" });
-  
+
   await t.session.resetChat();
-  
+
   assert.deepEqual(t.commands.at(-1), ["new_session"]);
   assert.deepEqual(t.session.getSnapshot().messages, []);
   assert.equal(t.session.getSnapshot().files, files);
@@ -162,4 +163,73 @@ test("reset chat cannot interrupt an active turn", async () => {
   await t.session.resetChat();
   assert.deepEqual(t.commands, []);
   assert.equal(t.session.getSnapshot().busy, true);
+});
+
+test("editor saves update preview and block concurrent prompts and reset", async () => {
+  const t = setup();
+  t.emit("event", { type: "ready" });
+  t.emit("snapshot", { ...starter });
+  await t.worker.onmessage({ data: { type: "loaded" } });
+  let complete;
+  let resets = 0;
+  t.runtime.reset = async () => {
+    resets++;
+  };
+  t.runtime.saveFile = (file, content, expected) => {
+    assert.equal(file, "style.css");
+    assert.equal(expected, starter["style.css"]);
+    return new Promise((resolve) => {
+      complete = () => resolve({ ...starter, [file]: content });
+    });
+  };
+  const save = t.session.saveFile(
+    "style.css",
+    "body { color: red; }",
+    starter["style.css"],
+  );
+  assert.equal(t.session.getSnapshot().savingFile, "style.css");
+  assert.equal(await t.session.send("Change the title"), false);
+  await t.session.reset();
+  assert.equal(resets, 0);
+  await assert.rejects(
+    t.session.saveFile("script.js", "", starter["script.js"]),
+    /current operation/,
+  );
+  complete();
+  await save;
+  assert.equal(
+    t.session.getSnapshot().files["style.css"],
+    "body { color: red; }",
+  );
+  assert.equal(t.session.getSnapshot().savingFile, null);
+});
+
+test("editor rejects stale drafts and retains workspace after failed writes", async () => {
+  const t = setup();
+  t.emit("event", { type: "ready" });
+  t.emit("snapshot", { ...starter });
+  let writes = 0;
+  t.runtime.saveFile = async () => {
+    writes++;
+    throw new Error("Storage full");
+  };
+  await assert.rejects(
+    t.session.saveFile("index.html", "new", "outdated"),
+    /changed in the workspace/,
+  );
+  assert.equal(writes, 0);
+  await assert.rejects(
+    t.session.saveFile("index.html", "new", starter["index.html"]),
+    /Storage full/,
+  );
+  assert.equal(
+    t.session.getSnapshot().files["index.html"],
+    starter["index.html"],
+  );
+  assert.equal(t.session.getSnapshot().savingFile, null);
+  t.emit("event", { type: "agent_start" });
+  await assert.rejects(
+    t.session.saveFile("index.html", "new", starter["index.html"]),
+    /current operation/,
+  );
 });

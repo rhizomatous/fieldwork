@@ -17,14 +17,17 @@ const suggestions: [string, string][] = [
 
 export function PromptComposer({ state, session }: PanelProps) {
   const [prompt, setPrompt] = useState("");
-  const canSend = state.linuxReady && state.modelReady && !state.busy;
-  const hint = state.resettingChat
-    ? "Resetting conversation…"
-    : state.busy
-      ? "Pi is working inside Linux…"
-      : canSend
-        ? "Enter to send · Shift\u00a0+\u00a0Enter for a new line"
-        : "Start Linux and load a model to begin";
+  const canSend =
+    state.linuxReady && state.modelReady && !state.busy && !state.savingFile;
+  const hint = state.savingFile
+    ? "Saving workspace…"
+    : state.resettingChat
+      ? "Resetting conversation…"
+      : state.busy
+        ? "Pi is working inside Linux…"
+        : canSend
+          ? "Enter to send · Shift\u00a0+\u00a0Enter for a new line"
+          : "Start Linux and load a model to begin";
   return (
     <div className="prompt-area">
       <ChatBox
