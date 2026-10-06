@@ -1,4 +1,11 @@
-export function BootConsole({ open, onClose, mountRef, diagnostics }) {
+export function BootConsole({
+  open,
+  onClose,
+  mountRef,
+  diagnostics,
+  bootStarted,
+  linuxStatus,
+}) {
   // Keep mounted while hidden: Wanix owns the descendants of this empty div.
   return (
     <section id="console-panel" aria-label="Linux boot console" hidden={!open}>
@@ -8,8 +15,22 @@ export function BootConsole({ open, onClose, mountRef, diagnostics }) {
           Close
         </button>
       </div>
+      {(!bootStarted || linuxStatus.text === "Booting") && (
+        <div className="console-empty-state" role="status">
+          <h3>
+            {bootStarted ? "Linux is starting" : "Linux hasn't started yet"}
+          </h3>
+          <p>
+            {bootStarted
+              ? "The terminal will appear here as Linux boots."
+              : "Start Linux to see its terminal and startup logs here."}
+          </p>
+        </div>
+      )}
       <div id="runtime-mount" ref={mountRef} />
-      <pre id="diagnostics">{diagnostics}</pre>
+      <pre id="diagnostics" hidden={!diagnostics}>
+        {diagnostics}
+      </pre>
     </section>
   );
 }

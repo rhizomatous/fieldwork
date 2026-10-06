@@ -61,17 +61,19 @@ export function PromptComposer({ state, session }) {
         />
         <div className="composer-footer">
           <span id="composer-hint">
-            {state.busy
-              ? "Pi is working inside Linux…"
-              : canSend
-                ? "Enter to send · Shift + Enter for a new line"
-                : "Start Linux and load a model to begin"}
+            {state.resettingChat
+              ? "Resetting conversation…"
+              : state.busy
+                ? "Pi is working inside Linux…"
+                : canSend
+                  ? "Enter to send · Shift + Enter for a new line"
+                  : "Start Linux and load a model to begin"}
           </span>
           <button
             id="stop"
             className="button"
             type="button"
-            hidden={!state.busy}
+            hidden={!state.busy || state.resettingChat}
             onClick={() => session.stop()}
           >
             Stop

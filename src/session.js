@@ -28,6 +28,7 @@ export function createSession({
     modelReady: false,
     loading: false,
     busy: false,
+    resettingChat: false,
     gpuAvailable: false,
     agentStatus: status("Not started"),
     modelStatus: status("Unloaded"),
@@ -365,12 +366,31 @@ export function createSession({
     refresh() {
       update({ previewVersion: state.previewVersion + 1 });
     },
+    async resetChat() {
+      if (state.busy || state.resettingChat) return;
+      update({ busy: true, resettingChat: true });
+      try {
+        if (state.linuxReady) await runtime.command("new_session");
+        assistantId = null;
+        activeRequest = null;
+        turnChanged = false;
+        update({ messages: [] });
+      } catch (error) {
+        message("WORKSPACE", error.message, true);
+      } finally {
+        update({ resettingChat: false });
+        done();
+      }
+    },
     async reset() {
       if (state.busy || !state.linuxReady) return;
+      update({ busy: true });
       try {
         await runtime.reset();
       } catch (error) {
         message("WORKSPACE", error.message, true);
+      } finally {
+        done();
       }
     },
     exportApp() {

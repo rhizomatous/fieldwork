@@ -62,14 +62,16 @@ async function until(fn, description) {
   throw new Error(`Timed out: ${description}`);
 }
 async function command(type, message) {
+  const id = randomUUID();
   await fs.writeFile(
     path.join(bridge, "command.tmp"),
-    JSON.stringify({ id: randomUUID(), type, message }),
+    JSON.stringify({ id, type, message }),
   );
   await fs.rename(
     path.join(bridge, "command.tmp"),
     path.join(bridge, "command.json"),
   );
+  return id;
 }
 async function respond(request, action) {
   await fs.writeFile(
@@ -130,12 +132,27 @@ try {
   console.log(
     "PASS: real Pi read/edit tools, tool-result continuation, final response",
   );
+  const resetId = await command("new_session");
+  await until(
+    async () =>
+      (await events()).find((event) => event?.id === resetId && event.success),
+    "reset acknowledgement",
+  );
+  assert.match(
+    await fs.readFile(path.join(project, "index.html"), "utf8"),
+    /Bridge verified/,
+  );
   const last = request.id;
   await command("prompt", "Make another change.");
-  await until(async () => {
+  const freshRequest = await until(async () => {
     const value = await json("request.json");
     return value?.id !== last && value;
   }, "cancel request");
+  assert.equal(freshRequest.context.messages.length, 1);
+  assert.equal(freshRequest.context.messages[0].role, "user");
+  console.log(
+    "PASS: chat reset clears Pi context and keeps edited workspace files",
+  );
   await command("abort");
   await until(
     async () =>

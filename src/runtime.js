@@ -117,12 +117,49 @@ export class LinuxRuntime extends EventTarget {
   }
   async command(type, message) {
     if (!this.root) throw new Error("Linux is not booted");
-    await this.atomic("bridge/command.json", {
-      id: crypto.randomUUID(),
-      type,
-      ...(message ? { message } : {}),
-    });
+    const id = crypto.randomUUID();
+    let cleanup = () => {};
+    // Reset must finish in Pi before another prompt can replace the mailbox.
+    const acknowledged =
+      type === "new_session"
+        ? new Promise((resolve, reject) => {
+            const onEvent = ({ detail }) => {
+              if (detail.type === "response" && detail.id === id) {
+                cleanup();
+                detail.success
+                  ? resolve()
+                  : reject(new Error(detail.error || "Session reset failed"));
+              }
+            };
+            const timer = setTimeout(() => {
+              cleanup();
+              reject(
+                new Error(
+                  "Pi did not confirm the reset. Reload Linux before continuing.",
+                ),
+              );
+            }, 15000);
+            cleanup = () => {
+              clearTimeout(timer);
+              this.removeEventListener("event", onEvent);
+            };
+            this.addEventListener("event", onEvent);
+          })
+        : Promise.resolve();
+    try {
+      await Promise.all([
+        this.atomic("bridge/command.json", {
+          id,
+          type,
+          ...(message ? { message } : {}),
+        }),
+        acknowledged,
+      ]);
+    } finally {
+      cleanup();
+    }
   }
+
   async atomic(path, value) {
     await this.root.writeFile(path + ".tmp", JSON.stringify(value));
     await this.root.rename(path + ".tmp", path);

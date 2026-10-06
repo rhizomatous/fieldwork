@@ -17,7 +17,17 @@ export function AgentPanel({ state, session }) {
     <section className="agent-panel" aria-labelledby="agent-title">
       <div className="pane-heading">
         <h1 id="agent-title">Agent</h1>
-        <Status id="agent-readiness" value={status} />
+        <div className="agent-tools">
+          <button
+            className="text-button"
+            disabled={state.busy || state.messages.length === 0}
+            onClick={() => session.resetChat()}
+            title="Clear conversation and start a fresh agent session; keep app files"
+          >
+            {state.resettingChat ? "Resetting…" : "Reset chat"}
+          </button>
+          <Status id="agent-readiness" value={status} />
+        </div>
       </div>
       <Conversation state={state} />
       <PromptComposer state={state} session={session} />

@@ -74,6 +74,12 @@ try {
         if (agent.state.isStreaming)
           throw new Error("Stop the agent before resetting");
         agent.reset();
+        emit({
+          type: "response",
+          id: command.id,
+          command: "new_session",
+          success: true,
+        });
       } else if (command.type === "prompt") {
         if (agent.state.isStreaming)
           throw new Error("The agent is already working");

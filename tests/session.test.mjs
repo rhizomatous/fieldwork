@@ -106,3 +106,27 @@ test("worker failure returns an error to a pending guest request and unlocks the
   assert.equal(t.session.getSnapshot().modelReady, false);
   assert.equal(t.session.getSnapshot().modelStatus.text, "Worker failed");
 });
+
+test("reset chat clears the conversation but preserves workspace files and loaded model", async () => {
+  const t = setup();
+  t.emit("event", { type: "ready" });
+  await t.worker.onmessage({ data: { type: "loaded" } });
+  const files = { ...starter, "index.html": "<h1>Keep this</h1>" };
+  t.emit("snapshot", files);
+  await t.session.send("Old conversation");
+  t.emit("event", { type: "agent_end" });
+  await t.session.resetChat();
+  assert.deepEqual(t.commands.at(-1), ["new_session"]);
+  assert.deepEqual(t.session.getSnapshot().messages, []);
+  assert.equal(t.session.getSnapshot().files, files);
+  assert.equal(t.session.getSnapshot().modelReady, true);
+  assert.equal(t.session.getSnapshot().busy, false);
+});
+
+test("reset chat cannot interrupt an active turn", async () => {
+  const t = setup();
+  t.emit("event", { type: "agent_start" });
+  await t.session.resetChat();
+  assert.deepEqual(t.commands, []);
+  assert.equal(t.session.getSnapshot().busy, true);
+});

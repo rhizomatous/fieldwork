@@ -1,6 +1,12 @@
 import { Status } from "./Status.jsx";
 
-export function LinuxPanel({ state, onBoot, consoleOpen, onToggleConsole }) {
+export function LinuxPanel({
+  state,
+  onBoot,
+  onReset,
+  consoleOpen,
+  onToggleConsole,
+}) {
   return (
     <section className="linux-panel" aria-labelledby="linux-title">
       <h2 id="linux-title">Linux</h2>
@@ -20,15 +26,24 @@ export function LinuxPanel({ state, onBoot, consoleOpen, onToggleConsole }) {
       >
         {state.bootLabel}
       </button>
-      <div className="runtime-footnote">
+      <div className="runtime-footnote project-actions">
         <button
           id="console-toggle"
-          className="text-button"
+          className="console-button"
           aria-expanded={consoleOpen}
           aria-controls="console-panel"
           onClick={onToggleConsole}
         >
-          Boot console
+          {consoleOpen ? "Close console" : "Open console"}
+        </button>
+        <button
+          id="reset"
+          className="console-button destructive-button"
+          disabled={state.busy || !state.linuxReady}
+          onClick={onReset}
+          title="Replace index.html, style.css, and script.js with starter files and reset Pi’s session"
+        >
+          Reset project
         </button>
       </div>
     </section>

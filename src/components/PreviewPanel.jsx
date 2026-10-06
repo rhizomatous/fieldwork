@@ -47,17 +47,8 @@ export function PreviewPanel({ state, session }) {
           >
             ↻
           </button>
-          <button
-            id="reset"
-            className="text-button"
-            disabled={state.busy || !state.linuxReady}
-            onClick={() => session.reset()}
-          >
-            Reset
-          </button>
         </div>
       </div>
-      <div className="preview-address">Preview</div>
       <div className="preview-stage">
         {state.files ? (
           <iframe
@@ -78,7 +69,7 @@ export function PreviewPanel({ state, session }) {
             </h3>
             <p>
               {state.agentStatus.kind === "error"
-                ? "Open the boot console for details, then reload to try again."
+                ? "Open the console for details, then reload to try again."
                 : state.bootStarted
                   ? "Your app will appear once Linux has opened its files."
                   : "Start Linux to open your workspace."}

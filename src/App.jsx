@@ -20,6 +20,7 @@ export function App({ session }) {
             <InferencePanel state={state} session={session} />
             <LinuxPanel
               state={state}
+              onReset={() => session.reset()}
               onBoot={() => session.boot(mount.current)}
               consoleOpen={consoleOpen}
               onToggleConsole={() => setConsoleOpen(!consoleOpen)}
@@ -33,6 +34,8 @@ export function App({ session }) {
         onClose={() => setConsoleOpen(false)}
         mountRef={mount}
         diagnostics={state.diagnostics}
+        bootStarted={state.bootStarted}
+        linuxStatus={state.linuxStatus}
       />
     </>
   );
