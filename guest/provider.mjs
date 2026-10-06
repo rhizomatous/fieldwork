@@ -1,5 +1,6 @@
-import fs from "node:fs";
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+
 import { createAssistantMessageEventStream } from "@mariozechner/pi-ai";
 
 const dir = process.env.BRIDGE_DIR || "/bridge";
@@ -48,10 +49,11 @@ export default function browserProvider(pi) {
       };
       (async () => {
         try {
-          if (++rounds > 10)
+          if (++rounds > 10) {
             throw new Error(
               "Stopped after 10 model calls. Try a smaller change.",
             );
+          }
           if (options?.signal?.aborted) throw new Error("Stopped");
           stream.push({ type: "start", partial: output });
           fs.writeFileSync(
@@ -67,8 +69,9 @@ export default function browserProvider(pi) {
               response = JSON.parse(fs.readFileSync(responsePath, "utf8"));
               break;
             } catch (error) {
-              if (error.code !== "ENOENT" && !(error instanceof SyntaxError))
+              if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) {
                 throw error;
+              }
             }
             await pause(100);
           }
@@ -77,8 +80,9 @@ export default function browserProvider(pi) {
           if (response.usage) Object.assign(output.usage, response.usage);
           const action = response.action;
           if (action.type === "tool") {
-            if (!context.tools?.some((tool) => tool.name === action.name))
+            if (!context.tools?.some((tool) => tool.name === action.name)) {
               throw new Error("Unknown tool requested");
+            }
             const block = {
               type: "toolCall",
               id,

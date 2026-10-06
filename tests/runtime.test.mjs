@@ -1,5 +1,6 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
+
 import { LinuxRuntime } from "../src/runtime.js";
 
 test("new session waits for its matching guest acknowledgement", async () => {

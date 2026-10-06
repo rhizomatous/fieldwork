@@ -1,5 +1,6 @@
 import "./ChatBox.css";
 import { useId, useRef } from "react";
+
 import { Button } from "./Button.jsx";
 
 /** Controlled composer. Enter submits; Shift+Enter inserts a line; IME is preserved.
@@ -30,17 +31,17 @@ export function ChatBox({
     <div className="chatbox">
       {suggestions.length > 0 && (
         <div className="suggestions" aria-label="Example prompts">
-          {suggestions.map(([label, text]) => (
+          {suggestions.map(([suggestionLabel, text]) => (
             <Button
               variant="secondary"
               size="small"
-              key={label}
+              key={suggestionLabel}
               onClick={() => {
                 onChange(text);
                 input.current.focus();
               }}
             >
-              {label}
+              {suggestionLabel}
             </Button>
           ))}
         </div>

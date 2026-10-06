@@ -1,5 +1,6 @@
-import { mkdir, copyFile, access } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
+import { mkdir, copyFile, access } from "node:fs/promises";
+
 await mkdir(".cache", { recursive: true });
 await mkdir("public/runtime", { recursive: true });
 const archive = ".cache/wanix-extras-0.4.0-rc2.tgz";

@@ -1,0 +1,56 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "unicorn", "oxc", "react", "jsx-a11y", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "rules": {
+    "eqeqeq": "error",
+    "prefer-const": "error",
+    "no-var": "error",
+    "curly": ["error", "multi-line"],
+    "react/exhaustive-deps": "error",
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": [
+      "error",
+      {
+        "allow": ["**/*.css"]
+      }
+    ],
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "unicorn/prefer-add-event-listener": "off",
+    "import/newline-after-import": "error"
+  },
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "overrides": [
+    {
+      "files": ["scripts/**", "guest/**", "tests/**", "vite.config.js"],
+      "env": {
+        "node": true,
+        "browser": false
+      }
+    },
+    {
+      "files": ["src/inference.worker.js"],
+      "env": {
+        "worker": true
+      }
+    },
+    {
+      "files": ["src/session.js", "src/inference.worker.js"],
+      "rules": {
+        "unicorn/require-post-message-target-origin": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "dist/**",
+    "public/runtime/**",
+    ".cache/**",
+    "**/node_modules/**"
+  ]
+}

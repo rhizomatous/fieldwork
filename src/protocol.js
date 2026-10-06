@@ -43,59 +43,66 @@ export function inferenceRequest(context) {
   for (const message of context.messages || []) {
     let content;
     if (typeof message.content === "string") content = message.content;
-    else
+    else {
       content = (message.content || [])
         .map((block) => {
           if (block.type === "text") return block.text;
-          if (block.type === "toolCall")
+          if (block.type === "toolCall") {
             return JSON.stringify({
               type: "tool",
               name: block.name,
               arguments: block.arguments,
             });
+          }
           return "";
         })
         .join("\n");
-    if (message.role === "toolResult")
+    }
+    if (message.role === "toolResult") {
       content = `Tool result (${message.toolName}, ${message.isError ? "error" : "success"}):\n${content}`;
+    }
     const role = message.role === "assistant" ? "assistant" : "user";
     // Merge adjacent roles for chat templates that require alternation.
-    if (messages.at(-1)?.role === role)
+    if (messages.at(-1)?.role === role) {
       messages.at(-1).content += "\n\n" + content;
-    else messages.push({ role, content });
+    } else messages.push({ role, content });
   }
   return { messages, schema };
 }
 
 export function parseAction(text, tools) {
   const action = JSON.parse(text);
-  if (action.type === "message" && typeof action.text === "string")
+  if (action.type === "message" && typeof action.text === "string") {
     return action;
+  }
   if (
     action.type !== "tool" ||
     !tools.some((tool) => tool.name === action.name)
-  )
+  ) {
     throw new Error("The model returned an unknown action.");
+  }
   if (
     !action.arguments ||
     typeof action.arguments !== "object" ||
     Array.isArray(action.arguments)
-  )
+  ) {
     throw new Error("The model returned invalid tool arguments.");
+  }
   return action;
 }
 
 export function buildPreview(files, channel = "") {
-  for (const file of PROJECT_FILES)
+  for (const file of PROJECT_FILES) {
     if (typeof files[file] !== "string") throw new Error(`Missing ${file}`);
+  }
   // Only the initial three-file format is supported. JSON encoding prevents an
   // app script containing </script> from breaking out of its injected wrapper.
   const css = JSON.stringify(files["style.css"]).replace(/</g, "\\u003c");
   const js = JSON.stringify(files["script.js"]).replace(/</g, "\\u003c");
   const token = JSON.stringify(channel).replace(/</g, "\\u003c");
-  const bootstrap = `<script>const channel=${token};addEventListener('error',e=>parent.postMessage({channel,type:'preview-error',message:e.message},'*'));addEventListener('unhandledrejection',e=>parent.postMessage({channel,type:'preview-error',message:String(e.reason)},'*'));<\/script>`;
-  const style = `<script>{const s=document.createElement('style');s.textContent=${css};document.head.append(s)}<\/script>`;
-  const script = `<script>{const s=document.createElement('script');s.textContent=${js};document.body.append(s)}<\/script>`;
+  const bootstrap = `<script>const channel=${token};addEventListener('error',e=>parent.postMessage({channel,type:'preview-error',message:e.message},'*'));addEventListener('unhandledrejection',e=>parent.postMessage({channel,type:'preview-error',message:String(e.reason)},'*'));</script>`;
+  const style = `<script>{const s=document.createElement('style');s.textContent=${css};document.head.append(s)}</script>`;
+  const script = `<script>{const s=document.createElement('script');s.textContent=${js};document.body.append(s)}</script>`;
   let html = files["index.html"];
   html = html.replace(
     /<link\b[^>]*href\s*=\s*["'](?:\.\/)?style\.css["'][^>]*>/gi,

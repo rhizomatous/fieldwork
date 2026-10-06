@@ -2,7 +2,9 @@
   font: inherit;
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .ds-button:disabled {
   cursor: default;

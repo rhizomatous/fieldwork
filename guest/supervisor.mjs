@@ -71,8 +71,9 @@ try {
       lastCommand = command.id;
       if (command.type === "abort") agent.abort();
       else if (command.type === "new_session") {
-        if (agent.state.isStreaming)
+        if (agent.state.isStreaming) {
           throw new Error("Stop the agent before resetting");
+        }
         agent.reset();
         emit({
           type: "response",
@@ -81,8 +82,9 @@ try {
           success: true,
         });
       } else if (command.type === "prompt") {
-        if (agent.state.isStreaming)
+        if (agent.state.isStreaming) {
           throw new Error("The agent is already working");
+        }
         agent
           .prompt(command.message)
           .catch((error) =>
@@ -90,8 +92,9 @@ try {
           );
       } else throw new Error("Unsupported bridge command");
     } catch (error) {
-      if (error.code !== "ENOENT" && !(error instanceof SyntaxError))
+      if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) {
         emit({ type: "response", success: false, error: error.message });
+      }
     }
   }, 150);
 } catch (error) {

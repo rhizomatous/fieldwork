@@ -30,14 +30,27 @@
   font-size: var(--font-size-body-large);
   line-height: var(--line-height-message);
 }
-.about-copy p { margin: 0 0 18px; }
-.about-copy ul { margin: 0 0 18px; padding-left: 20px; }
-.about-copy li + li { margin-top: 10px; }
-.about-copy strong { font-weight: var(--font-weight-semibold); }
+.about-copy p {
+  margin: 0 0 18px;
+}
+.about-copy ul {
+  margin: 0 0 18px;
+  padding-left: 20px;
+}
+.about-copy li + li {
+  margin-top: 10px;
+}
+.about-copy strong {
+  font-weight: var(--font-weight-semibold);
+}
 .about-copy a {
   color: var(--color-accent);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
-.about-copy a:hover { color: var(--color-accent-hover); }
-.about-copy .about-signature { margin-bottom: 0; }
+.about-copy a:hover {
+  color: var(--color-accent-hover);
+}
+.about-copy .about-signature {
+  margin-bottom: 0;
+}

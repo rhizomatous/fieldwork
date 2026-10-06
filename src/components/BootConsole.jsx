@@ -1,6 +1,7 @@
 import "./BootConsole.css";
-import { EmptyState } from "../design-system/EmptyState.jsx";
 import { Button } from "../design-system/Button.jsx";
+import { EmptyState } from "../design-system/EmptyState.jsx";
+
 export function BootConsole({
   open,
   onClose,

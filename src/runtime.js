@@ -15,11 +15,12 @@ export class LinuxRuntime extends EventTarget {
     if (
       !response.ok ||
       response.headers.get("content-type")?.includes("text/html")
-    )
+    ) {
       throw new Error(
         "Linux image missing. Run npm run assets, then npm run guest.",
       );
-    if (!customElements.get("wanix-namespace"))
+    }
+    if (!customElements.get("wanix-namespace")) {
       await new Promise((resolve, reject) => {
         const script = document.createElement("script");
         script.type = "module";
@@ -33,6 +34,7 @@ export class LinuxRuntime extends EventTarget {
           );
         document.head.append(script);
       });
+    }
     this.system = document.createElement("wanix-namespace");
     this.system.id = "agent-linux";
     this.system.setAttribute("wasm", "/runtime/wanix.wasm");
@@ -118,21 +120,20 @@ export class LinuxRuntime extends EventTarget {
   async command(type, message) {
     if (!this.root) throw new Error("Linux is not booted");
     const id = crypto.randomUUID();
-    let cleanup = () => {};
+    let cleanup;
     // Reset must finish in Pi before another prompt can replace the mailbox.
     const acknowledged =
       type === "new_session"
         ? new Promise((resolve, reject) => {
             const onEvent = ({ detail }) => {
               if (detail.type === "response" && detail.id === id) {
-                cleanup();
-                detail.success
-                  ? resolve()
-                  : reject(new Error(detail.error || "Session reset failed"));
+                cleanup?.();
+                if (detail.success) resolve();
+                else reject(new Error(detail.error || "Session reset failed"));
               }
             };
             const timer = setTimeout(() => {
-              cleanup();
+              cleanup?.();
               reject(
                 new Error(
                   "Pi did not confirm the reset. Reload Linux before continuing.",
@@ -156,7 +157,7 @@ export class LinuxRuntime extends EventTarget {
         acknowledged,
       ]);
     } finally {
-      cleanup();
+      cleanup?.();
     }
   }
 
@@ -168,8 +169,9 @@ export class LinuxRuntime extends EventTarget {
     await this.atomic(`bridge/response-${response.id}.json`, response);
   }
   async reset() {
-    for (const file of PROJECT_FILES)
+    for (const file of PROJECT_FILES) {
       await this.root.writeFile(`project/${file}`, starter[file]);
+    }
     await this.command("new_session");
     this.emit("snapshot", await this.snapshot());
   }
@@ -183,14 +185,18 @@ export class LinuxRuntime extends EventTarget {
             typeof entry === "string" ? entry : (entry.Name ?? entry.name),
           )
           .filter(Boolean)
-          .sort();
+          .toSorted();
         for (const name of names.filter((n) => /^event-\d+\.json$/.test(n))) {
           const event = JSON.parse(await this.root.readText(`bridge/${name}`));
           await this.root.remove(`bridge/${name}`);
           if (event.type === "ready") clearTimeout(this.bootTimer);
           this.emit("event", event);
-          if (event.type === "tool_execution_end" || event.type === "agent_end")
+          if (
+            event.type === "tool_execution_end" ||
+            event.type === "agent_end"
+          ) {
             this.emit("snapshot", await this.snapshot());
+          }
         }
         if (names.includes("request.json")) {
           const request = JSON.parse(
@@ -203,8 +209,9 @@ export class LinuxRuntime extends EventTarget {
         }
         failures = 0;
       } catch (error) {
-        if (++failures === 5)
+        if (++failures === 5) {
           this.emit("diagnostic", `Bridge read failed: ${error.message}`);
+        }
       }
       await delay(250);
     }

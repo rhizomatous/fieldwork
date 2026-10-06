@@ -102,13 +102,13 @@ Built on [Wanix](https://github.com/tractordev/wanix), [v86](https://github.com/
 
 Each component in `src/design-system` imports its own adjacent CSS file. Import components directly from their JSX files; shared color and typography tokens load once in `src/main.jsx`; app layout lives in `src/App.css`, and each panel imports its own adjacent CSS file. `src/style.css` contains global defaults and shared pane-heading/runtime-status styles. Runtime state/actions stay in the panels.
 
-| Component | API |
-| --- | --- |
-| `Button` | Native button props, `variant` (`secondary`, `primary`, `ghost`), `size="small"` for compact actions, `iconOnly` for square icon controls, and `destructive`. Defaults to `type="button"`; icon-only buttons need an accessible label. |
-| `StatusIndicator` | `value={{ text, kind }}`; `kind` is empty (idle), `ready`, `busy`, or `error`. Text accompanies the colored dot. |
-| `ChatBox` | Controlled `value`, `onChange`, `onSend`, `canSend`; optional `hint`, `suggestions` (label/text pairs), `showStop`/`onStop`, `label`, `placeholder`, and `maxLength`. Owns keyboard handling and focus, while its parent owns the draft and session. |
-| `Wordmark` | Fieldwork aide branding with optional `href` and accessible `label`. |
-| `EmptyState` | `title` and supporting copy as children, with `headingLevel` (2 or 3) for document structure. Shared typography and alignment; containing panels own width, padding, and placement. |
+| Component         | API                                                                                                                                                                                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`          | Native button props, `variant` (`secondary`, `primary`, `ghost`), `size="small"` for compact actions, `iconOnly` for square icon controls, and `destructive`. Defaults to `type="button"`; icon-only buttons need an accessible label.               |
+| `StatusIndicator` | `value={{ text, kind }}`; `kind` is empty (idle), `ready`, `busy`, or `error`. Text accompanies the colored dot.                                                                                                                                     |
+| `ChatBox`         | Controlled `value`, `onChange`, `onSend`, `canSend`; optional `hint`, `suggestions` (label/text pairs), `showStop`/`onStop`, `label`, `placeholder`, and `maxLength`. Owns keyboard handling and focus, while its parent owns the draft and session. |
+| `Wordmark`        | Fieldwork aide branding with optional `href` and accessible `label`.                                                                                                                                                                                 |
+| `EmptyState`      | `title` and supporting copy as children, with `headingLevel` (2 or 3) for document structure. Shared typography and alignment; containing panels own width, padding, and placement.                                                                  |
 
 ```jsx
 import { Button } from "./design-system/Button.jsx";
@@ -124,15 +124,15 @@ Button classes follow `ds-button` (base), `ds-button--{variant}`, `ds-button--{s
 
 `src/design-system/tokens/colors.css` is the source of truth for Fieldwork's colors, imported by `src/main.jsx`. Use semantic CSS variables in component styles rather than literal colors. Existing colors are preserved; this is an extraction, not a new theme.
 
-| Role | Tokens |
-| --- | --- |
-| Surfaces | `--color-bg-canvas`, `--color-bg-surface`, `--color-bg-hover`, `--color-bg-preview`, `--color-bg-frame`, `--color-bg-terminal` |
-| Text | `--color-text`, `--color-text-muted`, `--color-text-placeholder`, `--color-text-on-accent` |
-| Borders | `--color-border`, `--color-border-strong` |
-| Actions | `--color-accent`, `--color-accent-hover`, `--color-focus`, `--color-focus-halo` |
-| Status | `--color-status-idle`, `--color-status-ready`, `--color-status-busy` |
-| Destructive/error | `--color-danger`, `--color-danger-surface`, `--color-danger-border`, `--color-danger-hover` |
-| Shadows | `--color-shadow-frame`, `--color-shadow-overlay` |
+| Role              | Tokens                                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Surfaces          | `--color-bg-canvas`, `--color-bg-surface`, `--color-bg-hover`, `--color-bg-preview`, `--color-bg-frame`, `--color-bg-terminal` |
+| Text              | `--color-text`, `--color-text-muted`, `--color-text-placeholder`, `--color-text-on-accent`                                     |
+| Borders           | `--color-border`, `--color-border-strong`                                                                                      |
+| Actions           | `--color-accent`, `--color-accent-hover`, `--color-focus`, `--color-focus-halo`                                                |
+| Status            | `--color-status-idle`, `--color-status-ready`, `--color-status-busy`                                                           |
+| Destructive/error | `--color-danger`, `--color-danger-surface`, `--color-danger-border`, `--color-danger-hover`                                    |
+| Shadows           | `--color-shadow-frame`, `--color-shadow-overlay`                                                                               |
 
 For example, use `color: var(--color-text-muted)` for supporting copy and `border: 1px solid var(--color-border)` for dividers. Ready indicators and focus alias the accent; translucent variants derive from their base tokens using relative OKLCH colors so they stay in sync. Shadow geometry stays in component CSS. `transparent`, `inherit`, and `currentColor` remain valid structural values. In forced-color mode, focus uses the system `Highlight` color. The browser theme-color in `index.html` is a deliberate static duplicate for simplicity.
 
@@ -164,3 +164,15 @@ Use longhand properties when you want to retain inherited weight and leading. Ex
 ### Theme preference
 
 The title-bar Theme control offers System (the default), Light, and Dark. The selection is saved locally when browser storage is available. System follows OS appearance changes live; the initial theme is resolved in the document head before first paint. Both palettes live in `src/design-system/tokens/colors.css`. The editable preview app retains its own theme.
+
+## Formatting and linting
+
+- `npm run format` formats authored source, styles, markup, and documentation with Oxfmt.
+- `npm run format:check` checks formatting without writing files.
+- `npm run lint` runs Oxlint and fails on any finding.
+- `npm run lint:fix` applies safe lint fixes; remaining findings need review.
+- `npm run check` runs formatting checks, lint, unit tests, and the production build.
+
+[Oxfmt](https://oxc.rs/docs/guide/usage/formatter/config.html) uses an 80-column layout, two-space indentation, double quotes, and semicolons. Oxfmt alphabetizes imports within groups (Node built-ins, packages, internal modules, parent modules, and sibling modules), separated by blank lines. Side-effect imports, including CSS, stay in their original positions to preserve initialization and cascade order. Oxlint enforces a blank line after the import block. Generated assets, dependencies, caches, and lockfiles are excluded from formatting.
+
+[Oxlint](https://oxc.rs/docs/guide/usage/linter/config) enables correctness and suspicious checks across JavaScript, React/hooks, accessibility, imports, Unicorn, and Oxc rules, plus explicit equality, const, no-var, and multiline-brace rules. Browser, worker, and Node environments are configured separately. Exceptions accommodate automatic JSX, CSS side-effect imports, intentional event-handler properties, and valid ARIA status/log roles. Worker messaging is exempt from the window-only target-origin rule. Documented inline exceptions preserve intentional chat-scroll and preview-refresh dependencies.

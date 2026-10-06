@@ -1,6 +1,7 @@
 import "./Conversation.css";
-import { EmptyState } from "../design-system/EmptyState.jsx";
 import { useLayoutEffect, useRef } from "react";
+
+import { EmptyState } from "../design-system/EmptyState.jsx";
 
 export function Conversation({ state }) {
   const log = useRef(null);
@@ -14,6 +15,8 @@ export function Conversation({ state }) {
         : "Start Linux and load a model";
   useLayoutEffect(() => {
     log.current.scrollTop = log.current.scrollHeight;
+    // New messages trigger scrolling; metrics updates must not move the viewport.
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [state.messages]);
   return (
     <div

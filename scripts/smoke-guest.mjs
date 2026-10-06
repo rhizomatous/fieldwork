@@ -1,10 +1,11 @@
-// Deterministic transport/tool test. Model responses are explicit fixtures.
-import fs from "node:fs/promises";
-import path from "node:path";
-import os from "node:os";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+// Deterministic transport/tool test. Model responses are explicit fixtures.
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
 import { starter } from "../src/starter.js";
 
 const root = await fs.mkdtemp(path.join(os.tmpdir(), "fieldwork-smoke-"));
@@ -12,8 +13,9 @@ const bridge = path.join(root, "bridge"),
   project = path.join(root, "project");
 await fs.mkdir(bridge);
 await fs.mkdir(project);
-for (const [file, content] of Object.entries(starter))
+for (const [file, content] of Object.entries(starter)) {
   await fs.writeFile(path.join(project, file), content);
+}
 const container = execFileSync(
   "docker",
   [
@@ -46,7 +48,7 @@ async function events() {
   return Promise.all(
     (await fs.readdir(bridge))
       .filter((name) => /^event-\d+\.json$/.test(name))
-      .sort()
+      .toSorted()
       .map(json),
   );
 }

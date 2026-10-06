@@ -1,11 +1,12 @@
 import "./App.css";
 import { useRef, useState, useSyncExternalStore } from "react";
-import { Header } from "./components/Header.jsx";
+
 import { AgentPanel } from "./components/AgentPanel.jsx";
-import { InferencePanel } from "./components/InferencePanel.jsx";
-import { PreviewPanel } from "./components/PreviewPanel.jsx";
-import { LinuxPanel } from "./components/LinuxPanel.jsx";
 import { BootConsole } from "./components/BootConsole.jsx";
+import { Header } from "./components/Header.jsx";
+import { InferencePanel } from "./components/InferencePanel.jsx";
+import { LinuxPanel } from "./components/LinuxPanel.jsx";
+import { PreviewPanel } from "./components/PreviewPanel.jsx";
 
 export function App({ session }) {
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot);

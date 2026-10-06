@@ -1,6 +1,8 @@
-import { gpuSupportError } from "./gpu-support.js";
 import { CreateMLCEngine } from "@mlc-ai/web-llm";
+
+import { gpuSupportError } from "./gpu-support.js";
 import { inferenceRequest, parseAction } from "./protocol.js";
+
 let engine;
 let cancelled = false;
 let generating = false;
@@ -55,8 +57,9 @@ self.onmessage = async ({ data }) => {
     for await (const chunk of chunks) {
       if (cancelled) throw new Error("Stopped");
       const delta = chunk.choices[0]?.delta.content || "";
-      if (delta && firstToken === undefined)
+      if (delta && firstToken === undefined) {
         firstToken = performance.now() - start;
+      }
       text += delta;
       if (chunk.usage) usage = chunk.usage;
       send("tokens", {

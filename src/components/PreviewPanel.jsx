@@ -1,7 +1,8 @@
 import "./PreviewPanel.css";
-import { EmptyState } from "../design-system/EmptyState.jsx";
-import { Button } from "../design-system/Button.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { Button } from "../design-system/Button.jsx";
+import { EmptyState } from "../design-system/EmptyState.jsx";
 import { buildPreview } from "../protocol.js";
 
 export function PreviewPanel({ state, session }) {
@@ -13,9 +14,11 @@ export function PreviewPanel({ state, session }) {
     if (!state.files) return { channel, html: "" };
     try {
       return { channel, html: buildPreview(state.files, channel) };
-    } catch (error) {
-      return { channel, html: "", error: error.message };
+    } catch (previewError) {
+      return { channel, html: "", error: previewError.message };
     }
+    // Explicit Refresh must rebuild srcDoc even when the file contents are unchanged.
+    // oxlint-disable-next-line react/memo-dependencies, react/exhaustive-deps
   }, [state.files, state.previewVersion]);
   useEffect(() => {
     function onMessage(event) {

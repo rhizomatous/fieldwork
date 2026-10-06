@@ -11,9 +11,12 @@
         const saved = localStorage.getItem("fieldwork-theme");
         if (["light", "dark"].includes(saved)) preference = saved;
       } catch {}
-      const theme = preference === "system"
-        ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-        : preference;
+      const theme =
+        preference === "system"
+          ? matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light"
+          : preference;
       document.documentElement.dataset.themePreference = preference;
       document.documentElement.dataset.theme = theme;
       document.querySelector('meta[name="theme-color"]').content =

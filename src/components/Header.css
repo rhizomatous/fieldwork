@@ -26,6 +26,10 @@
   gap: 16px;
 }
 @media (max-width: 400px) {
-  .header-actions { gap: 8px; }
-  .app-header { padding-inline: 12px; }
+  .header-actions {
+    gap: 8px;
+  }
+  .app-header {
+    padding-inline: 12px;
+  }
 }

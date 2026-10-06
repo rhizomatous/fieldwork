@@ -127,7 +127,7 @@ export function createSession({
         });
         break;
       case "tool_execution_end":
-        if (event.isError)
+        if (event.isError) {
           message(
             "TOOL ERROR",
             (event.result?.content || [])
@@ -137,6 +137,7 @@ export function createSession({
               .slice(0, 1600),
             true,
           );
+        }
         break;
       case "message_start":
         assistantId = null;
@@ -157,12 +158,14 @@ export function createSession({
         }
         break;
       case "message_end":
-        if (event.message?.errorMessage)
+        if (event.message?.errorMessage) {
           message("PI", event.message.errorMessage, true);
+        }
         break;
       case "agent_end":
-        if (!turnChanged)
+        if (!turnChanged) {
           message("WORKSPACE", "No app files changed in this turn.");
+        }
         done();
         break;
       case "response":
@@ -202,9 +205,10 @@ export function createSession({
     }
   });
   worker.onmessage = async ({ data }) => {
-    if (data.type === "progress")
+    if (data.type === "progress") {
       update({ progress: data.progress || 0, loadDetail: data.text });
-    if (data.type === "loaded")
+    }
+    if (data.type === "loaded") {
       update({
         modelReady: true,
         loading: false,
@@ -213,7 +217,8 @@ export function createSession({
         loadDetail:
           "Model loaded locally · 4-bit weights · 4,096-token context",
       });
-    if (data.type === "load-error")
+    }
+    if (data.type === "load-error") {
       update({
         modelReady: false,
         loading: false,
@@ -221,13 +226,15 @@ export function createSession({
         loadLabel: "Retry model",
         loadDetail: data.error,
       });
-    if (data.type === "tokens" && data.id === activeRequest)
+    }
+    if (data.type === "tokens" && data.id === activeRequest) {
       update({
         ...(data.firstToken !== undefined
           ? { ttft: (data.firstToken / 1000).toFixed(1) }
           : {}),
         inferenceNote: `${data.characters.toLocaleString()} characters generated`,
       });
+    }
     if (data.type === "result" && data.id === activeRequest) {
       const speed = data.metrics?.decode_tokens_per_s;
       update({
@@ -261,10 +268,11 @@ export function createSession({
     });
     done();
     update({ modelStatus: status("Worker failed", "error") });
-    if (request)
+    if (request) {
       runtime
         .respond({ id: request, error })
-        .catch((error) => message("BRIDGE", error.message, true));
+        .catch((bridgeError) => message("BRIDGE", bridgeError.message, true));
+    }
   };
   async function checkGPU() {
     try {
@@ -329,8 +337,9 @@ export function createSession({
       worker.postMessage({ type: "load", model: state.model });
     },
     selectModel(model) {
-      if (state.busy || state.loading || !models.some((m) => m.id === model))
+      if (state.busy || state.loading || !models.some((m) => m.id === model)) {
         return;
+      }
       update({
         model,
         modelReady: false,
@@ -341,8 +350,9 @@ export function createSession({
     },
     async send(text) {
       text = text.trim();
-      if (!text || state.busy || !state.linuxReady || !state.modelReady)
+      if (!text || state.busy || !state.linuxReady || !state.modelReady) {
         return false;
+      }
       update({ busy: true });
       message("YOU", text);
       try {
