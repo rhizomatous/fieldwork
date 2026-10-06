@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { buildPreview } from "../protocol.js";
 
 export function PreviewPanel({ state, session }) {
-  const [narrow, setNarrow] = useState(false);
   const [error, setError] = useState(null);
   const frame = useRef(null);
   // Metrics and conversation updates must not reload the user's running app.
@@ -36,20 +35,8 @@ export function PreviewPanel({ state, session }) {
   return (
     <section className="preview-panel" aria-labelledby="preview-title">
       <div className="pane-heading">
-        <h2 id="preview-title">
-          Preview <span className="label">/PROJECT</span>
-        </h2>
+        <h2 id="preview-title">Preview</h2>
         <div className="preview-tools">
-          <button
-            disabled={!state.files}
-            id="viewport"
-            className="icon-button"
-            aria-label={`Switch to ${narrow ? "wide" : "narrow"} preview`}
-            title="Switch preview width"
-            onClick={() => setNarrow(!narrow)}
-          >
-            ▯
-          </button>
           <button
             disabled={!state.files}
             id="refresh"
@@ -61,14 +48,6 @@ export function PreviewPanel({ state, session }) {
             ↻
           </button>
           <button
-            disabled={!state.files}
-            id="export"
-            className="text-button"
-            onClick={() => session.exportApp()}
-          >
-            Export
-          </button>
-          <button
             id="reset"
             className="text-button"
             disabled={state.busy || !state.linuxReady}
@@ -78,14 +57,8 @@ export function PreviewPanel({ state, session }) {
           </button>
         </div>
       </div>
-      <div className="preview-address">
-        <span className="dot" />
-        <span>workspace / index.html</span>
-        <span id="preview-status">
-          {state.files ? "Shared with Linux" : "Workspace not open"}
-        </span>
-      </div>
-      <div className={`preview-stage${narrow ? " narrow" : ""}`}>
+      <div className="preview-address">Preview</div>
+      <div className="preview-stage">
         {state.files ? (
           <iframe
             ref={frame}
@@ -112,16 +85,6 @@ export function PreviewPanel({ state, session }) {
             </p>
           </div>
         )}
-      </div>
-      <div className="preview-footer">
-        <span>
-          <span className="dot" /> HTML + CSS + JavaScript
-        </span>
-        <span id="revision">
-          {state.revision
-            ? `Revision ${state.revision} · saved in workspace`
-            : "Waiting for workspace"}
-        </span>
       </div>
       <p id="preview-error" role="status" hidden={!errorText}>
         {errorText ? `Preview: ${errorText}` : ""}

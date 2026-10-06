@@ -21,7 +21,6 @@ export function LinuxPanel({ state, onBoot, consoleOpen, onToggleConsole }) {
         {state.bootLabel}
       </button>
       <div className="runtime-footnote">
-        <span id="storage">{state.storage}</span>
         <button
           id="console-toggle"
           className="text-button"

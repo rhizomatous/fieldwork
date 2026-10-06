@@ -5,12 +5,8 @@ export function Header() {
         <span className="brand-symbol" aria-hidden="true">
           ⌘
         </span>{" "}
-        fieldwork<span className="edition">LOCAL AGENT LAB</span>
+        fieldwork
       </a>
-      <div className="header-note">
-        <span className="dot"></span> Your browser is the computer
-        <span className="version">EXPERIMENT 001</span>
-      </div>
     </header>
   );
 }

@@ -7,7 +7,7 @@ export function AgentPanel({ state, session }) {
   const failed =
     state.agentStatus.kind === "error" || state.modelStatus.kind === "error";
   const status = failed
-    ? { text: "Needs attention", kind: "error" }
+    ? { text: "Not ready", kind: "" }
     : state.busy
       ? { text: "Working", kind: "busy" }
       : ready
