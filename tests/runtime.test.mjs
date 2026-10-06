@@ -16,11 +16,14 @@ test("new session waits for its matching guest acknowledgement", async () => {
   const pending = runtime.command("new_session").then(() => {
     resolved = true;
   });
+
   await new Promise((resolve) => setImmediate(resolve));
   runtime.emit("event", { type: "response", id: "unrelated", success: true });
+  
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(resolved, false);
   runtime.emit("event", { type: "response", id: command.id, success: true });
+  
   await pending;
   assert.equal(resolved, true);
 });

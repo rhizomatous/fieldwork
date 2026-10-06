@@ -18,14 +18,17 @@ const tools = [
     },
   },
 ];
+
 test("a fresh turn requires inspection before allowing a final response", () => {
   const request = inferenceRequest({
     tools,
     messages: [{ role: "user", content: "Change the title" }],
   });
+
   assert.equal(request.schema.anyOf.length, 1);
   assert.equal(request.schema.anyOf[0].properties.name.const, "read");
 });
+
 test("tool results remain paired with the assistant action and retain error state", () => {
   const result = inferenceRequest({
     tools,
@@ -50,6 +53,7 @@ test("tool results remain paired with the assistant action and retain error stat
       },
     ],
   });
+
   assert.deepEqual(
     result.messages.map((m) => m.role),
     ["system", "user", "assistant", "user"],
@@ -60,6 +64,7 @@ test("tool results remain paired with the assistant action and retain error stat
     tools[0].parameters,
   );
 });
+
 test("unknown tools, incomplete JSON, and non-object arguments cannot execute", () => {
   assert.throws(() =>
     parseAction('{"type":"tool","name":"delete","arguments":{}}', tools),
@@ -73,6 +78,7 @@ test("unknown tools, incomplete JSON, and non-object arguments cannot execute", 
     "Done",
   );
 });
+
 test("preview uses actual CSS and JS while safely encoding closing script tags", () => {
   const html = buildPreview(
     {
@@ -81,6 +87,7 @@ test("preview uses actual CSS and JS while safely encoding closing script tags",
     },
     "test",
   );
+
   assert.ok(!html.includes('src="script.js"'));
   assert.ok(!html.includes('href="style.css"'));
   assert.ok(!html.includes("</script><h1>unexpected"));
@@ -88,6 +95,7 @@ test("preview uses actual CSS and JS while safely encoding closing script tags",
   assert.match(html, /connect-src 'none'/);
   assert.match(html, /const channel="test"/);
 });
+
 test("missing workspace files fail visibly instead of substituting starter content", () => {
   assert.throws(
     () => buildPreview({ "index.html": "<p>Broken</p>" }),

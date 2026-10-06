@@ -9,6 +9,7 @@ test("rejects the reported Firefox limit before engine initialization", () => {
     /exposes 9.*requires 10/,
   );
 });
+
 test("accepts WebLLM storage buffer minimum and handles unavailable adapters", () => {
   assert.equal(
     gpuSupportError({ limits: { maxStorageBuffersPerShaderStage: 10 } }),

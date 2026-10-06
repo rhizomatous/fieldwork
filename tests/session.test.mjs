@@ -16,6 +16,7 @@ function setup() {
   runtime.command = async (...args) => commands.push(args);
   runtime.respond = async (data) => responses.push(data);
   const worker = { postMessage: (data) => workerMessages.push(data) };
+
   const session = createSession({
     runtime,
     worker,
@@ -25,8 +26,10 @@ function setup() {
       }),
     },
   });
+
   const emit = (type, detail) =>
     runtime.dispatchEvent(new CustomEvent(type, { detail }));
+
   return {
     session,
     worker,
@@ -42,11 +45,15 @@ test("subscriptions can detach and reattach without losing the session or bootin
   const t = setup();
   await t.session.boot({});
   t.emit("event", { type: "ready" });
+  
   const snapshot = t.session.getSnapshot();
   const unsubscribe = t.session.subscribe(() => {});
   unsubscribe();
+  
   t.session.subscribe(() => {});
+  
   await t.session.boot({});
+  
   assert.equal(t.boots(), 1);
   assert.equal(t.session.getSnapshot(), snapshot);
   assert.equal(snapshot.linuxReady, true);
@@ -55,27 +62,40 @@ test("subscriptions can detach and reattach without losing the session or bootin
 test("a prompt routes inference and edits while metrics leave the preview files stable", async () => {
   const t = setup();
   t.emit("event", { type: "ready" });
+
   await t.worker.onmessage({ data: { type: "loaded" } });
   await t.session.send("Change the title");
+  
   assert.deepEqual(t.commands, [["prompt", "Change the title"]]);
+  
   t.emit("event", { type: "agent_start" });
-  const files = t.session.getSnapshot().files;
+
+  const files = t.session.getSnapshot().files;  
   t.emit("inference", { id: "request-1", context: {} });
+  
   assert.equal(t.workerMessages.at(-1).type, "generate");
+  
   await t.worker.onmessage({
     data: { type: "tokens", id: "request-1", firstToken: 120, characters: 12 },
   });
+  
   assert.equal(t.session.getSnapshot().files, files);
+  
   await t.worker.onmessage({
     data: { type: "result", id: "stale", text: "ignore" },
   });
+  
   assert.equal(t.responses.length, 0);
+  
   await t.worker.onmessage({
     data: { type: "result", id: "request-1", text: "action" },
   });
+  
   assert.equal(t.responses[0].id, "request-1");
+  
   t.emit("snapshot", { ...starter, "index.html": "<h1>Updated</h1>" });
   t.emit("event", { type: "agent_end" });
+  
   assert.equal(t.session.getSnapshot().busy, false);
   assert.equal(t.session.getSnapshot().revision, 1);
   assert.ok(
@@ -88,20 +108,27 @@ test("a prompt routes inference and edits while metrics leave the preview files 
 test("stopping cancels both inference and the guest agent", async () => {
   const t = setup();
   t.emit("event", { type: "agent_start" });
+  
   await t.session.stop();
+  
   assert.deepEqual(t.workerMessages, [{ type: "cancel" }]);
   assert.deepEqual(t.commands, [["abort"]]);
+  
   t.emit("event", { type: "agent_end" });
+  
   assert.equal(t.session.getSnapshot().busy, false);
 });
 
 test("worker failure returns an error to a pending guest request and unlocks the UI", async () => {
   const t = setup();
   t.emit("event", { type: "ready" });
+  
   await t.worker.onmessage({ data: { type: "loaded" } });
+  
   t.emit("event", { type: "agent_start" });
   t.emit("inference", { id: "failed" });
   t.worker.onerror({ message: "GPU lost" });
+  
   assert.deepEqual(t.responses, [{ id: "failed", error: "GPU lost" }]);
   assert.equal(t.session.getSnapshot().busy, false);
   assert.equal(t.session.getSnapshot().modelReady, false);
@@ -111,12 +138,17 @@ test("worker failure returns an error to a pending guest request and unlocks the
 test("reset chat clears the conversation but preserves workspace files and loaded model", async () => {
   const t = setup();
   t.emit("event", { type: "ready" });
+
   await t.worker.onmessage({ data: { type: "loaded" } });
   const files = { ...starter, "index.html": "<h1>Keep this</h1>" };
   t.emit("snapshot", files);
+  
   await t.session.send("Old conversation");
+  
   t.emit("event", { type: "agent_end" });
+  
   await t.session.resetChat();
+  
   assert.deepEqual(t.commands.at(-1), ["new_session"]);
   assert.deepEqual(t.session.getSnapshot().messages, []);
   assert.equal(t.session.getSnapshot().files, files);
