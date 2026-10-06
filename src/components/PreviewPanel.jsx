@@ -1,3 +1,5 @@
+import { EmptyState } from "../design-system/EmptyState.jsx";
+import { Button } from "../design-system/Button.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildPreview } from "../protocol.js";
 
@@ -37,16 +39,18 @@ export function PreviewPanel({ state, session }) {
       <div className="pane-heading">
         <h2 id="preview-title">Preview</h2>
         <div className="preview-tools">
-          <button
+          <Button
             disabled={!state.files}
             id="refresh"
-            className="icon-button"
+            variant="ghost"
+            size="small"
+            iconOnly
             aria-label="Refresh preview"
             title="Refresh preview"
             onClick={() => session.refresh()}
           >
             ↻
-          </button>
+          </Button>
         </div>
       </div>
       <div className="preview-stage">
@@ -59,22 +63,23 @@ export function PreviewPanel({ state, session }) {
             srcDoc={preview.html}
           />
         ) : (
-          <div className="preview-placeholder" role="status">
-            <h3>
-              {state.agentStatus.kind === "error"
+          <EmptyState
+            headingLevel={3}
+            title={
+              state.agentStatus.kind === "error"
                 ? "Workspace unavailable"
                 : state.bootStarted
                   ? "Opening your workspace…"
-                  : "Your workspace preview"}
-            </h3>
-            <p>
-              {state.agentStatus.kind === "error"
-                ? "Open the console for details, then reload to try again."
-                : state.bootStarted
-                  ? "Your app will appear once Linux has opened its files."
-                  : "Start Linux to open your workspace."}
-            </p>
-          </div>
+                  : "Your workspace preview"
+            }
+            role="status"
+          >
+            {state.agentStatus.kind === "error"
+              ? "Open the console for details, then reload to try again."
+              : state.bootStarted
+                ? "Your app will appear once Linux has opened its files."
+                : "Start Linux to open your workspace."}
+          </EmptyState>
         )}
       </div>
       <p id="preview-error" role="status" hidden={!errorText}>

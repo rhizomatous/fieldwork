@@ -1,3 +1,4 @@
+import { EmptyState } from "../design-system/EmptyState.jsx";
 import { useLayoutEffect, useRef } from "react";
 
 export function Conversation({ state }) {
@@ -23,14 +24,11 @@ export function Conversation({ state }) {
       aria-relevant="additions"
     >
       {state.messages.length === 0 && (
-        <div className="agent-empty-state">
-          <h2>{emptyTitle}</h2>
-          <p>
-            {ready
-              ? "Describe a change to your app, and Pi will get to work."
-              : "Use the panels below. Once both are ready, you can ask Fieldwork to edit your app."}
-          </p>
-        </div>
+        <EmptyState headingLevel={2} title={emptyTitle}>
+          {ready
+            ? "Describe a change to your app, and Pi will get to work."
+            : "Use the panels below. Once both are ready, you can ask Fieldwork to edit your app."}
+        </EmptyState>
       )}
       {state.messages.map((item) =>
         item.tool ? (

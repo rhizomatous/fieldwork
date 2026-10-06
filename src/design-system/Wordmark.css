@@ -1,0 +1,18 @@
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: inherit;
+  text-decoration: none;
+  font-size: var(--font-size-brand);
+  font-weight: var(--font-weight-brand);
+  letter-spacing: var(--letter-spacing-brand);
+}
+.brand-symbol {
+  font-size: var(--font-size-brand-symbol);
+  color: var(--color-accent);
+}
+.brand-aide {
+  font-weight: var(--font-weight-light);
+  letter-spacing: var(--letter-spacing-brand-suffix);
+}

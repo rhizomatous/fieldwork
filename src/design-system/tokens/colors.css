@@ -1,7 +1,4 @@
-/* Fieldwork color tokens.
- * Literal palette values live here; component styles consume semantic roles.
- * The editable project and Wanix's terminal internals own their own themes.
- */
+/* Shared colors for Fieldwork. */
 :root {
   /* Surfaces, from page canvas to embedded content. */
   --color-bg-canvas: oklch(97% 0.008 90);

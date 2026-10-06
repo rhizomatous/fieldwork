@@ -1,4 +1,5 @@
-import { Status } from "./Status.jsx";
+import { Button } from "../design-system/Button.jsx";
+import { StatusIndicator } from "../design-system/StatusIndicator.jsx";
 
 export function LinuxPanel({
   state,
@@ -12,39 +13,42 @@ export function LinuxPanel({
       <h2 id="linux-title">Linux</h2>
       <div className="runtime-status">
         <span>Linux</span>
-        <Status id="linux-state" value={state.linuxStatus} />
+        <StatusIndicator id="linux-state" value={state.linuxStatus} />
       </div>
       <div className="runtime-status">
         <span>Pi</span>
-        <Status id="agent-state" value={state.agentStatus} />
+        <StatusIndicator id="agent-state" value={state.agentStatus} />
       </div>
-      <button
+      <Button
         id="boot"
-        className="button"
+        variant="secondary"
         disabled={state.bootStarted}
         onClick={onBoot}
       >
         {state.bootLabel}
-      </button>
+      </Button>
       <div className="runtime-footnote project-actions">
-        <button
+        <Button
           id="console-toggle"
-          className="console-button"
+          variant="secondary"
+          size="small"
           aria-expanded={consoleOpen}
           aria-controls="console-panel"
           onClick={onToggleConsole}
         >
           {consoleOpen ? "Close console" : "Open console"}
-        </button>
-        <button
+        </Button>
+        <Button
           id="reset"
-          className="console-button destructive-button"
+          variant="secondary"
+          size="small"
+          destructive
           disabled={state.busy || !state.linuxReady}
           onClick={onReset}
           title="Replace index.html, style.css, and script.js with starter files and reset Pi’s session"
         >
           Reset project
-        </button>
+        </Button>
       </div>
     </section>
   );

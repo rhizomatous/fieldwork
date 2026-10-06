@@ -1,4 +1,5 @@
-import { Status } from "./Status.jsx";
+import { Button } from "../design-system/Button.jsx";
+import { StatusIndicator } from "../design-system/StatusIndicator.jsx";
 
 export function InferencePanel({ state, session }) {
   const showDetail =
@@ -8,7 +9,7 @@ export function InferencePanel({ state, session }) {
       <h2 id="model-title">Inference</h2>
       <div className="runtime-status">
         <span>Qwen3 4B</span>
-        <Status id="model-state" value={state.modelStatus} />
+        <StatusIndicator id="model-state" value={state.modelStatus} />
       </div>
       <div
         className="decode-stat"
@@ -24,14 +25,14 @@ export function InferencePanel({ state, session }) {
           <span className="decode-unit">tok/s</span>
         </span>
       </div>
-      <button
+      <Button
         id="load"
-        className="button"
+        variant="secondary"
         onClick={() => session.load()}
         disabled={state.busy || state.loading || !state.gpuAvailable}
       >
         {state.loadLabel}
-      </button>
+      </Button>
       <progress
         id="load-progress"
         max="1"

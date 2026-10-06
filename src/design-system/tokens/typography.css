@@ -1,6 +1,4 @@
-/* Fieldwork typography. Preserve the current scale; component CSS uses these tokens.
- * The editable project and Wanix terminal keep their independent typography.
- */
+/* Shared typography for Fieldwork. */
 :root {
   /* Font stacks: native interface text and technical output. */
   --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

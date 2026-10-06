@@ -98,9 +98,31 @@ Built on [Wanix](https://github.com/tractordev/wanix), [v86](https://github.com/
 
 **Reset chat** clears the displayed conversation and resets Pi’s context after the guest acknowledges the command. It keeps app files and the loaded model. Reset is disabled while the agent is working; stop the current turn first. Rebuild the guest with `npm run guest` after updating from a version without reset acknowledgements.
 
+## Shared React components
+
+Each component in `src/design-system` imports its own adjacent CSS file. Import components directly from their JSX files; shared color and typography tokens load once in `src/main.jsx`; app-specific layout stays in `src/style.css`, and runtime state/actions stay in the panels.
+
+| Component | API |
+| --- | --- |
+| `Button` | Native button props, `variant` (`secondary`, `primary`, `ghost`), `size="small"` for compact actions, `iconOnly` for square icon controls, and `destructive`. Defaults to `type="button"`; icon-only buttons need an accessible label. |
+| `StatusIndicator` | `value={{ text, kind }}`; `kind` is empty (idle), `ready`, `busy`, or `error`. Text accompanies the colored dot. |
+| `ChatBox` | Controlled `value`, `onChange`, `onSend`, `canSend`; optional `hint`, `suggestions` (label/text pairs), `showStop`/`onStop`, `label`, `placeholder`, and `maxLength`. Owns keyboard handling and focus, while its parent owns the draft and session. |
+| `Wordmark` | Fieldwork aide branding with optional `href` and accessible `label`. |
+| `EmptyState` | `title` and supporting copy as children, with `headingLevel` (2 or 3) for document structure. Shared typography and alignment; containing panels own width, padding, and placement. |
+
+```jsx
+import { Button } from "./design-system/Button.jsx";
+import { StatusIndicator } from "./design-system/StatusIndicator.jsx";
+
+<Button variant="primary" onClick={loadModel}>Load model</Button>
+<StatusIndicator value={{ text: "Ready", kind: "ready" }} />
+```
+
+Button classes follow `ds-button` (base), `ds-button--{variant}`, `ds-button--{size}`, and optional `ds-button--icon-only` / `ds-button--destructive`. Size controls geometry and typography; variants control appearance.
+
 ## Color system
 
-`src/styles/colors.css` is the source of truth for Fieldwork's colors, imported by `src/style.css`. Use semantic CSS variables in component styles rather than literal colors. Existing colors are preserved; this is an extraction, not a new theme.
+`src/design-system/tokens/colors.css` is the source of truth for Fieldwork's colors, imported by `src/main.jsx`. Use semantic CSS variables in component styles rather than literal colors. Existing colors are preserved; this is an extraction, not a new theme.
 
 | Role | Tokens |
 | --- | --- |
@@ -118,7 +140,7 @@ The editable starter app is a separate document with its own palette; these toke
 
 ## Typography system
 
-`src/styles/typography.css` is the source of truth for shell typography. It is imported alongside the color tokens in `src/style.css`. The existing sizes and fine weight differences are preserved rather than normalized into a new scale.
+`src/design-system/tokens/typography.css` is the source of truth for shell typography. It is imported alongside the color tokens in `src/main.jsx`. The existing sizes and fine weight differences are preserved rather than normalized into a new scale.
 
 - `--font-family-sans` for interface copy; `--font-family-mono` for technical output.
 - `--font-size-*` for micro, caption, meta, control, body, body-large, heading, icons, metrics, and branding. Existing display sizes remain available for retained styles.

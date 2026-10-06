@@ -1,3 +1,5 @@
+import { EmptyState } from "../design-system/EmptyState.jsx";
+import { Button } from "../design-system/Button.jsx";
 export function BootConsole({
   open,
   onClose,
@@ -11,21 +13,20 @@ export function BootConsole({
     <section id="console-panel" aria-label="Linux boot console" hidden={!open}>
       <div className="pane-heading">
         <h2>Linux console</h2>
-        <button id="console-close" className="text-button" onClick={onClose}>
+        <Button id="console-close" variant="ghost" onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
       {(!bootStarted || linuxStatus.text === "Booting") && (
-        <div className="console-empty-state" role="status">
-          <h3>
-            {bootStarted ? "Linux is starting" : "Linux hasn't started yet"}
-          </h3>
-          <p>
-            {bootStarted
-              ? "The terminal will appear here as Linux boots."
-              : "Start Linux to see its terminal and startup logs here."}
-          </p>
-        </div>
+        <EmptyState
+          headingLevel={3}
+          title={bootStarted ? "Linux is starting" : "Linux hasn't started yet"}
+          role="status"
+        >
+          {bootStarted
+            ? "The terminal will appear here as Linux boots."
+            : "Start Linux to see its terminal and startup logs here."}
+        </EmptyState>
       )}
       <div id="runtime-mount" ref={mountRef} />
       <pre id="diagnostics" hidden={!diagnostics}>

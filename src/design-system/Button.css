@@ -1,0 +1,95 @@
+.ds-button {
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.ds-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.ds-button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.ds-button[hidden] {
+  display: none !important;
+}
+:is(.ds-button--secondary, .ds-button--primary) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--color-bg-surface);
+  color: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  padding: 9px 12px;
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-emphasis);
+  white-space: nowrap;
+}
+:is(.ds-button--secondary, .ds-button--primary):hover:not(:disabled) {
+  background: var(--color-bg-hover);
+}
+.ds-button--primary {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  border-color: var(--color-accent);
+}
+.ds-button--primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+.ds-button--ghost {
+  border: 0;
+  background: transparent;
+  padding: 5px 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-meta);
+}
+.ds-button--ghost:hover:not(:disabled) {
+  color: var(--color-accent);
+}
+/* Size controls geometry and typography independently of variant. */
+.ds-button--small {
+  padding: 5px 12px;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-regular);
+}
+/* Icon-only controls change layout, retaining their visual variant. */
+.ds-button--icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: var(--font-size-icon);
+}
+.ds-button--icon-only.ds-button--small {
+  width: 24px;
+  height: 24px;
+}
+.ds-button--destructive {
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+}
+.ds-button--destructive:hover:not(:disabled) {
+  color: var(--color-danger);
+  background: var(--color-danger-hover);
+  border-color: var(--color-danger);
+}
+.ds-button--destructive:focus-visible {
+  outline-color: var(--color-danger);
+}
+
+.ds-button--destructive:disabled {
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+  background: transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-button {
+    transition: none;
+  }
+}

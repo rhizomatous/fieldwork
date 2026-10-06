@@ -1,4 +1,5 @@
-import { Status } from "./Status.jsx";
+import { Button } from "../design-system/Button.jsx";
+import { StatusIndicator } from "../design-system/StatusIndicator.jsx";
 import { Conversation } from "./Conversation.jsx";
 import { PromptComposer } from "./PromptComposer.jsx";
 
@@ -18,15 +19,15 @@ export function AgentPanel({ state, session }) {
       <div className="pane-heading">
         <h1 id="agent-title">Agent</h1>
         <div className="agent-tools">
-          <button
-            className="text-button"
+          <Button
+            variant="ghost"
             disabled={state.busy || state.messages.length === 0}
             onClick={() => session.resetChat()}
             title="Clear conversation and start a fresh agent session; keep app files"
           >
             {state.resettingChat ? "Resetting…" : "Reset chat"}
-          </button>
-          <Status id="agent-readiness" value={status} />
+          </Button>
+          <StatusIndicator id="agent-readiness" value={status} />
         </div>
       </div>
       <Conversation state={state} />

@@ -1,0 +1,14 @@
+.ds-empty-state {
+  text-align: center;
+}
+.ds-empty-state > :is(h2, h3) {
+  margin: 0 0 10px;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-emphasis);
+}
+.ds-empty-state > p {
+  margin: 0;
+  font-size: var(--font-size-body-large);
+  line-height: var(--line-height-body);
+  color: var(--color-text-muted);
+}
