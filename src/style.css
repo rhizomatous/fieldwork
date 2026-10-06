@@ -654,3 +654,8 @@ iframe {
 #console-panel > .ds-empty-state {
   padding: 38px 24px;
 }
+
+/* The editable app owns its theme, independently of the shell. */
+#preview {
+  color-scheme: light;
+}

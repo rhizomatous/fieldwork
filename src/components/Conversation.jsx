@@ -26,7 +26,7 @@ export function Conversation({ state }) {
       {state.messages.length === 0 && (
         <EmptyState headingLevel={2} title={emptyTitle}>
           {ready
-            ? "Describe a change to your app, and Pi will get to work."
+            ? "Describe a change to your app, and Fieldwork will get to work."
             : "Use the panels below. Once both are ready, you can ask Fieldwork to edit your app."}
         </EmptyState>
       )}

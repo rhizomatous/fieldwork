@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f6f5f1" />
+    <script>
+      // Resolve the theme before the first paint; storage can be unavailable.
+      let preference = "system";
+      try {
+        const saved = localStorage.getItem("fieldwork-theme");
+        if (["light", "dark"].includes(saved)) preference = saved;
+      } catch {}
+      const theme = preference === "system"
+        ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+        : preference;
+      document.documentElement.dataset.themePreference = preference;
+      document.documentElement.dataset.theme = theme;
+      document.querySelector('meta[name="theme-color"]').content =
+        theme === "dark" ? "#191813" : "#f6f5f1";
+    </script>
     <title>Fieldwork AIDE</title>
   </head>
   <body>

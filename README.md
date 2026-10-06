@@ -160,3 +160,7 @@ Example:
 ```
 
 Use longhand properties when you want to retain inherited weight and leading. Existing `font` shorthands still reset those properties, matching their original behavior. `font: inherit` and `font-synthesis: none` remain structural declarations, not tokens. The starter app and Wanix terminal retain their own typography.
+
+### Theme preference
+
+The title-bar Theme control offers System (the default), Light, and Dark. The selection is saved locally when browser storage is available. System follows OS appearance changes live; the initial theme is resolved in the document head before first paint. Both palettes live in `src/design-system/tokens/colors.css`. The editable preview app retains its own theme.

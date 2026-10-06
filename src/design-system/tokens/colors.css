@@ -1,5 +1,6 @@
 /* Shared colors for Fieldwork. */
 :root {
+  color-scheme: light;
   /* Surfaces, from page canvas to embedded content. */
   --color-bg-canvas: oklch(97% 0.008 90);
   --color-bg-surface: oklch(99% 0.004 90);
@@ -37,9 +38,38 @@
   --color-shadow-overlay: oklch(from var(--color-shadow) l c h / 0.18);
 }
 
+/* Warm charcoal surfaces with a lighter sage accent. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg-canvas: oklch(21% 0.008 90);
+  --color-bg-surface: oklch(24% 0.008 90);
+  --color-bg-hover: oklch(29% 0.012 90);
+  --color-bg-preview: oklch(18% 0.008 90);
+  --color-bg-frame: oklch(22% 0.012 90);
+  --color-bg-terminal: oklch(17% 0.005 90);
+  --color-text: oklch(92% 0.01 90);
+  --color-text-muted: oklch(72% 0.015 90);
+  --color-text-placeholder: oklch(64% 0.01 90);
+  --color-text-on-accent: oklch(20% 0.02 145);
+  --color-border: oklch(34% 0.012 90);
+  --color-border-strong: oklch(43% 0.015 90);
+  --color-accent: oklch(76% 0.075 145);
+  --color-accent-hover: oklch(82% 0.07 145);
+  --color-focus-halo: oklch(from var(--color-focus) l c h / 0.2);
+  --color-status-idle: oklch(55% 0.01 90);
+  --color-status-busy: oklch(78% 0.12 75);
+  --color-danger: oklch(76% 0.12 30);
+  --color-danger-surface: oklch(29% 0.035 30);
+  --color-danger-hover: oklch(from var(--color-danger) l c h / 0.12);
+  --color-shadow: oklch(10% 0.01 90);
+  --color-shadow-frame: oklch(from var(--color-shadow) l c h / 0.2);
+  --color-shadow-overlay: oklch(from var(--color-shadow) l c h / 0.4);
+}
+
 /* Let the user's system palette own focus in high-contrast mode. */
 @media (forced-colors: active) {
-  :root {
+  :root,
+  :root[data-theme="dark"] {
     --color-focus: Highlight;
   }
 }
