@@ -11,7 +11,9 @@ export function PreviewPanel({ state, session }) {
   // Metrics and conversation updates must not reload the user's running app.
   const preview = useMemo(() => {
     const channel = crypto.randomUUID();
-    if (!state.files) return { channel, html: "" };
+    if (!state.files) {
+      return { channel, html: "" };
+    }
     try {
       return { channel, html: buildPreview(state.files, channel) };
     } catch (previewError) {
@@ -33,6 +35,7 @@ export function PreviewPanel({ state, session }) {
         });
       }
     }
+
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, [preview.channel]);

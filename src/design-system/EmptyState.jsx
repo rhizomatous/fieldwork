@@ -1,4 +1,5 @@
 import "./EmptyState.css";
+
 /** @param {{title: import('react').ReactNode, children: import('react').ReactNode,
  * headingLevel?: 2|3, className?: string, role?: string}} props
  */

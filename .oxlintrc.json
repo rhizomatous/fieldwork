@@ -9,7 +9,7 @@
     "eqeqeq": "error",
     "prefer-const": "error",
     "no-var": "error",
-    "curly": ["error", "multi-line"],
+    "curly": ["error", "all"],
     "react/exhaustive-deps": "error",
     "react/react-in-jsx-scope": "off",
     "import/no-unassigned-import": [

@@ -2,14 +2,17 @@ import { PROJECT_FILES } from "./protocol.js";
 import { starter } from "./starter.js";
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export class LinuxRuntime extends EventTarget {
   root;
   running = false;
   seenRequests = new Set();
   busy = false;
+
   emit(type, detail) {
     this.dispatchEvent(new CustomEvent(type, { detail }));
   }
+
   async boot(mount) {
     const response = await fetch("/agent-rootfs.tgz", { method: "HEAD" });
     if (
@@ -108,6 +111,7 @@ export class LinuxRuntime extends EventTarget {
       90_000,
     );
   }
+
   async snapshot() {
     const entries = await Promise.all(
       PROJECT_FILES.map(async (file) => [
@@ -117,8 +121,11 @@ export class LinuxRuntime extends EventTarget {
     );
     return Object.fromEntries(entries);
   }
+
   async command(type, message) {
-    if (!this.root) throw new Error("Linux is not booted");
+    if (!this.root) {
+      throw new Error("Linux is not booted");
+    }
     const id = crypto.randomUUID();
     let cleanup;
     // Reset must finish in Pi before another prompt can replace the mailbox.
@@ -128,8 +135,11 @@ export class LinuxRuntime extends EventTarget {
             const onEvent = ({ detail }) => {
               if (detail.type === "response" && detail.id === id) {
                 cleanup?.();
-                if (detail.success) resolve();
-                else reject(new Error(detail.error || "Session reset failed"));
+                if (detail.success) {
+                  resolve();
+                } else {
+                  reject(new Error(detail.error || "Session reset failed"));
+                }
               }
             };
             const timer = setTimeout(() => {
@@ -165,9 +175,11 @@ export class LinuxRuntime extends EventTarget {
     await this.root.writeFile(path + ".tmp", JSON.stringify(value));
     await this.root.rename(path + ".tmp", path);
   }
+
   async respond(response) {
     await this.atomic(`bridge/response-${response.id}.json`, response);
   }
+
   async reset() {
     for (const file of PROJECT_FILES) {
       await this.root.writeFile(`project/${file}`, starter[file]);
@@ -175,6 +187,7 @@ export class LinuxRuntime extends EventTarget {
     await this.command("new_session");
     this.emit("snapshot", await this.snapshot());
   }
+
   async poll() {
     let failures = 0;
     while (this.running) {
@@ -189,7 +202,9 @@ export class LinuxRuntime extends EventTarget {
         for (const name of names.filter((n) => /^event-\d+\.json$/.test(n))) {
           const event = JSON.parse(await this.root.readText(`bridge/${name}`));
           await this.root.remove(`bridge/${name}`);
-          if (event.type === "ready") clearTimeout(this.bootTimer);
+          if (event.type === "ready") {
+            clearTimeout(this.bootTimer);
+          }
           this.emit("event", event);
           if (
             event.type === "tool_execution_end" ||

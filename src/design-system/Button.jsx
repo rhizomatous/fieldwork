@@ -1,4 +1,5 @@
 import "./Button.css";
+
 /** Native button props are forwarded, including ref, disabled and aria-*.
  * @param {import('react').ButtonHTMLAttributes<HTMLButtonElement> & {
  * variant?: 'secondary'|'primary'|'ghost',

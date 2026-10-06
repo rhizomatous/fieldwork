@@ -19,7 +19,9 @@ self.onmessage = async ({ data }) => {
         powerPreference: "high-performance",
       });
       const compatibilityError = gpuSupportError(adapter);
-      if (compatibilityError) throw new Error(compatibilityError);
+      if (compatibilityError) {
+        throw new Error(compatibilityError);
+      }
       await engine?.unload();
       engine = await CreateMLCEngine(
         data.model,
@@ -33,7 +35,9 @@ self.onmessage = async ({ data }) => {
     }
     return;
   }
-  if (data.type !== "generate") return;
+  if (data.type !== "generate") {
+    return;
+  }
   if (!engine || generating) {
     send("result", { id: data.id, error: "The model is not ready." });
     return;
@@ -55,13 +59,17 @@ self.onmessage = async ({ data }) => {
       response_format: { type: "json_object", schema: JSON.stringify(schema) },
     });
     for await (const chunk of chunks) {
-      if (cancelled) throw new Error("Stopped");
+      if (cancelled) {
+        throw new Error("Stopped");
+      }
       const delta = chunk.choices[0]?.delta.content || "";
       if (delta && firstToken === undefined) {
         firstToken = performance.now() - start;
       }
       text += delta;
-      if (chunk.usage) usage = chunk.usage;
+      if (chunk.usage) {
+        usage = chunk.usage;
+      }
       send("tokens", {
         id: data.id,
         characters: text.length,
@@ -69,7 +77,9 @@ self.onmessage = async ({ data }) => {
         elapsed: performance.now() - start,
       });
     }
-    if (cancelled) throw new Error("Stopped");
+    if (cancelled) {
+      throw new Error("Stopped");
+    }
     const action = parseAction(text, data.context.tools || []);
     send("result", {
       id: data.id,

@@ -23,10 +23,14 @@ export function ChatBox({
 }) {
   const id = useId();
   const input = useRef(null);
+
   function submit(event) {
     event.preventDefault();
-    if (canSend && value.trim()) onSend(value);
+    if (canSend && value.trim()) {
+      onSend(value);
+    }
   }
+
   return (
     <div className="chatbox">
       {suggestions.length > 0 && (

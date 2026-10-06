@@ -37,6 +37,7 @@ const container = execFileSync(
   { encoding: "utf8" },
 ).trim();
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function json(file) {
   try {
     return JSON.parse(await fs.readFile(path.join(bridge, file), "utf8"));
@@ -44,6 +45,7 @@ async function json(file) {
     return null;
   }
 }
+
 async function events() {
   return Promise.all(
     (await fs.readdir(bridge))
@@ -52,17 +54,23 @@ async function events() {
       .map(json),
   );
 }
+
 async function until(fn, description) {
   const deadline = Date.now() + 90_000;
   while (Date.now() < deadline) {
     const found = await fn();
-    if (found) return found;
+    if (found) {
+      return found;
+    }
     const fatal = (await events()).find((event) => event?.type === "fatal");
-    if (fatal) throw new Error(fatal.message);
+    if (fatal) {
+      throw new Error(fatal.message);
+    }
     await delay(200);
   }
   throw new Error(`Timed out: ${description}`);
 }
+
 async function command(type, message) {
   const id = randomUUID();
   await fs.writeFile(
@@ -75,18 +83,22 @@ async function command(type, message) {
   );
   return id;
 }
+
 async function respond(request, action) {
   await fs.writeFile(
     path.join(bridge, `response-${request.id}.json`),
     JSON.stringify({ id: request.id, action }),
   );
 }
+
 try {
   await until(
     async () => (await events()).find((event) => event?.type === "ready"),
     "Pi startup",
   );
+
   console.log("PASS: bundled Pi starts in Linux without network access");
+
   await command("prompt", "Change the HTML title to Bridge verified.");
   let request = await until(() => json("request.json"), "first model request");
   await respond(request, {
@@ -99,11 +111,13 @@ try {
     const value = await json("request.json");
     return value?.id !== first && value;
   }, "read continuation");
+
   assert.ok(
     request.context.messages.some(
       (message) => message.role === "toolResult" && !message.isError,
     ),
   );
+
   await respond(request, {
     type: "tool",
     name: "edit",
@@ -117,44 +131,54 @@ try {
       ],
     },
   });
+
   const second = request.id;
   request = await until(async () => {
     const value = await json("request.json");
     return value?.id !== second && value;
   }, "edit continuation");
+
   assert.match(
     await fs.readFile(path.join(project, "index.html"), "utf8"),
     /<title>Bridge verified<\/title>/,
   );
+
   await respond(request, { type: "message", text: "Title changed." });
   await until(
     async () => (await events()).find((event) => event?.type === "agent_end"),
     "turn completion",
   );
+
   console.log(
     "PASS: real Pi read/edit tools, tool-result continuation, final response",
   );
+
   const resetId = await command("new_session");
   await until(
     async () =>
       (await events()).find((event) => event?.id === resetId && event.success),
     "reset acknowledgement",
   );
+
   assert.match(
     await fs.readFile(path.join(project, "index.html"), "utf8"),
     /Bridge verified/,
   );
+
   const last = request.id;
   await command("prompt", "Make another change.");
   const freshRequest = await until(async () => {
     const value = await json("request.json");
     return value?.id !== last && value;
   }, "cancel request");
+
   assert.equal(freshRequest.context.messages.length, 1);
   assert.equal(freshRequest.context.messages[0].role, "user");
+
   console.log(
     "PASS: chat reset clears Pi context and keeps edited workspace files",
   );
+
   await command("abort");
   await until(
     async () =>
@@ -162,6 +186,7 @@ try {
       2,
     "cancellation",
   );
+
   console.log("PASS: cancellation interrupts a pending inference request");
 } finally {
   execFileSync("docker", ["rm", "-f", container], { stdio: "ignore" });

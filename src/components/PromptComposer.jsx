@@ -13,6 +13,7 @@ const suggestions = [
     "Add a reset button that resets the little joys counter to zero.",
   ],
 ];
+
 export function PromptComposer({ state, session }) {
   const [prompt, setPrompt] = useState("");
   const canSend = state.linuxReady && state.modelReady && !state.busy;

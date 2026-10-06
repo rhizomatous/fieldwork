@@ -54,7 +54,9 @@ export default function browserProvider(pi) {
               "Stopped after 10 model calls. Try a smaller change.",
             );
           }
-          if (options?.signal?.aborted) throw new Error("Stopped");
+          if (options?.signal?.aborted) {
+            throw new Error("Stopped");
+          }
           stream.push({ type: "start", partial: output });
           fs.writeFileSync(
             `${dir}/request.tmp`,
@@ -64,7 +66,9 @@ export default function browserProvider(pi) {
           const deadline = Date.now() + 240_000;
           let response;
           while (Date.now() < deadline) {
-            if (options?.signal?.aborted) throw new Error("Stopped");
+            if (options?.signal?.aborted) {
+              throw new Error("Stopped");
+            }
             try {
               response = JSON.parse(fs.readFileSync(responsePath, "utf8"));
               break;
@@ -75,9 +79,15 @@ export default function browserProvider(pi) {
             }
             await pause(100);
           }
-          if (!response) throw new Error("Local inference timed out");
-          if (response.error) throw new Error(response.error);
-          if (response.usage) Object.assign(output.usage, response.usage);
+          if (!response) {
+            throw new Error("Local inference timed out");
+          }
+          if (response.error) {
+            throw new Error(response.error);
+          }
+          if (response.usage) {
+            Object.assign(output.usage, response.usage);
+          }
           const action = response.action;
           if (action.type === "tool") {
             if (!context.tools?.some((tool) => tool.name === action.name)) {
@@ -130,7 +140,9 @@ export default function browserProvider(pi) {
               content: action.text,
               partial: output,
             });
-          } else throw new Error("Invalid model action");
+          } else {
+            throw new Error("Invalid model action");
+          }
           stream.push({
             type: "done",
             reason: output.stopReason,

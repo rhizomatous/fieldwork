@@ -4,11 +4,13 @@ const dir = process.env.BRIDGE_DIR || "/bridge";
 const cwd = process.env.PROJECT_DIR || "/project";
 fs.mkdirSync(dir, { recursive: true });
 let sequence = 0;
+
 function emit(event) {
   const name = `${dir}/event-${String(++sequence).padStart(8, "0")}.json`;
   fs.writeFileSync(`${name}.tmp`, JSON.stringify(event));
   fs.renameSync(`${name}.tmp`, name);
 }
+
 emit({
   type: "boot",
   message: `Linux ${process.arch} · Node ${process.version} · loading Pi core`,
@@ -67,10 +69,13 @@ try {
       const command = JSON.parse(
         fs.readFileSync(`${dir}/command.json`, "utf8"),
       );
-      if (!command.id || command.id === lastCommand) return;
+      if (!command.id || command.id === lastCommand) {
+        return;
+      }
       lastCommand = command.id;
-      if (command.type === "abort") agent.abort();
-      else if (command.type === "new_session") {
+      if (command.type === "abort") {
+        agent.abort();
+      } else if (command.type === "new_session") {
         if (agent.state.isStreaming) {
           throw new Error("Stop the agent before resetting");
         }
@@ -90,7 +95,9 @@ try {
           .catch((error) =>
             emit({ type: "response", success: false, error: error.message }),
           );
-      } else throw new Error("Unsupported bridge command");
+      } else {
+        throw new Error("Unsupported bridge command");
+      }
     } catch (error) {
       if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) {
         emit({ type: "response", success: false, error: error.message });

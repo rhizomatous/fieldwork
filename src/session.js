@@ -48,18 +48,22 @@ export function createSession({
     prefill: "—",
     inferenceNote: "No API key. No inference server.",
   };
+
   function update(patch) {
     state = { ...state, ...patch };
     listeners.forEach((listener) => listener());
   }
+
   function message(who, text, error = false) {
     const id = ++nextId;
     update({ messages: [...state.messages, { id, who, text, error }] });
     return id;
   }
+
   function diagnostic(text) {
     update({ diagnostics: (state.diagnostics + text + "\n").slice(-24000) });
   }
+
   function done() {
     activeRequest = null;
     update({
@@ -74,6 +78,7 @@ export function createSession({
       ),
     });
   }
+
   function fatal(text) {
     update({ linuxReady: false });
     done();
@@ -83,6 +88,7 @@ export function createSession({
     });
     message("WORKSPACE", text, true);
   }
+
   runtime.addEventListener("event", ({ detail: event }) => {
     switch (event.type) {
       case "boot":
@@ -176,17 +182,24 @@ export function createSession({
         break;
     }
   });
+
   runtime.addEventListener("diagnostic", ({ detail }) => diagnostic(detail));
+
   runtime.addEventListener("fatal", ({ detail }) => fatal(detail));
+
   runtime.addEventListener("storage", ({ detail }) =>
     update({ storage: detail }),
   );
+
   runtime.addEventListener("snapshot", ({ detail }) => {
     if (JSON.stringify(detail) !== JSON.stringify(state.files)) {
-      if (state.busy) turnChanged = true;
+      if (state.busy) {
+        turnChanged = true;
+      }
       update({ files: detail, revision: state.revision + 1 });
     }
   });
+
   runtime.addEventListener("inference", async ({ detail }) => {
     try {
       if (!state.modelReady) {
@@ -204,10 +217,12 @@ export function createSession({
       done();
     }
   });
+
   worker.onmessage = async ({ data }) => {
     if (data.type === "progress") {
       update({ progress: data.progress || 0, loadDetail: data.text });
     }
+
     if (data.type === "loaded") {
       update({
         modelReady: true,
@@ -218,6 +233,7 @@ export function createSession({
           "Model loaded locally · 4-bit weights · 4,096-token context",
       });
     }
+
     if (data.type === "load-error") {
       update({
         modelReady: false,
@@ -227,6 +243,7 @@ export function createSession({
         loadDetail: data.error,
       });
     }
+
     if (data.type === "tokens" && data.id === activeRequest) {
       update({
         ...(data.firstToken !== undefined
@@ -235,6 +252,7 @@ export function createSession({
         inferenceNote: `${data.characters.toLocaleString()} characters generated`,
       });
     }
+
     if (data.type === "result" && data.id === activeRequest) {
       const speed = data.metrics?.decode_tokens_per_s;
       update({
@@ -257,9 +275,11 @@ export function createSession({
       }
     }
   };
+
   worker.onerror = (event) => {
     const error = event.message || "Inference worker failed. Reload the page.";
     const request = activeRequest;
+
     update({
       modelReady: false,
       loading: false,
@@ -268,18 +288,21 @@ export function createSession({
     });
     done();
     update({ modelStatus: status("Worker failed", "error") });
+
     if (request) {
       runtime
         .respond({ id: request, error })
         .catch((bridgeError) => message("BRIDGE", bridgeError.message, true));
     }
   };
+
   async function checkGPU() {
     try {
       const adapter = await gpu?.requestAdapter({
         powerPreference: "high-performance",
       });
       const compatibilityError = gpuSupportError(adapter);
+
       update({
         gpuAvailable: !compatibilityError,
         gpuLabel: adapter
@@ -296,7 +319,9 @@ export function createSession({
       update({ gpuLabel: "WebGPU unavailable", loadDetail: error.message });
     }
   }
+
   checkGPU();
+
   return {
     getSnapshot: () => state,
     subscribe: (listener) => {
@@ -304,7 +329,9 @@ export function createSession({
       return () => listeners.delete(listener);
     },
     async boot(mount) {
-      if (state.bootStarted) return;
+      if (state.bootStarted) {
+        return;
+      }
       update({
         bootStarted: true,
         linuxStatus: status("Booting", "busy"),
@@ -324,7 +351,9 @@ export function createSession({
       }
     },
     load() {
-      if (state.busy || state.loading || !state.gpuAvailable) return;
+      if (state.busy || state.loading || !state.gpuAvailable) {
+        return;
+      }
       update({
         modelReady: false,
         loading: true,
@@ -364,7 +393,9 @@ export function createSession({
       return true;
     },
     async stop() {
-      if (!state.busy) return;
+      if (!state.busy) {
+        return;
+      }
       worker.postMessage({ type: "cancel" });
       try {
         await runtime.command("abort");
@@ -377,10 +408,14 @@ export function createSession({
       update({ previewVersion: state.previewVersion + 1 });
     },
     async resetChat() {
-      if (state.busy || state.resettingChat) return;
+      if (state.busy || state.resettingChat) {
+        return;
+      }
       update({ busy: true, resettingChat: true });
       try {
-        if (state.linuxReady) await runtime.command("new_session");
+        if (state.linuxReady) {
+          await runtime.command("new_session");
+        }
         assistantId = null;
         activeRequest = null;
         turnChanged = false;
@@ -393,7 +428,9 @@ export function createSession({
       }
     },
     async reset() {
-      if (state.busy || !state.linuxReady) return;
+      if (state.busy || !state.linuxReady) {
+        return;
+      }
       update({ busy: true });
       try {
         await runtime.reset();
@@ -404,7 +441,9 @@ export function createSession({
       }
     },
     exportApp() {
-      if (!state.files) return;
+      if (!state.files) {
+        return;
+      }
       const url = URL.createObjectURL(
         new Blob([buildPreview(state.files)], { type: "text/html" }),
       );

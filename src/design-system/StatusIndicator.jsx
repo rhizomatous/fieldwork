@@ -1,4 +1,5 @@
 import "./StatusIndicator.css";
+
 /** Visible text makes status understandable without relying on color.
  * @param {{value: {text: string, kind?: ''|'ready'|'busy'|'error'}, id?: string, className?: string}} props
  */

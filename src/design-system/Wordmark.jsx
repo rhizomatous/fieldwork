@@ -1,4 +1,5 @@
 import "./Wordmark.css";
+
 /** @param {{href?: string, label?: string}} props */
 export function Wordmark({ href = "/", label = "Fieldwork home" }) {
   return (
