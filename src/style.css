@@ -714,3 +714,22 @@ iframe {
     scroll-behavior: auto !important;
   }
 }
+
+.preview-placeholder {
+  align-self: center;
+  max-width: 300px;
+  padding: 28px;
+  text-align: center;
+  color: var(--muted);
+}
+.preview-placeholder h3 {
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0 0 12px;
+}
+.preview-placeholder p {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}

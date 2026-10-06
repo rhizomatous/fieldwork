@@ -1,4 +1,3 @@
-import { starter } from "./starter.js";
 import { buildPreview } from "./protocol.js";
 
 export const models = [
@@ -48,7 +47,7 @@ export function createSession({
     storage: "Workspace awaiting Linux",
     messages: [],
     diagnostics: "",
-    files: { ...starter },
+    files: null,
     revision: 0,
     previewVersion: 0,
     ttft: "—",
@@ -370,19 +369,15 @@ export function createSession({
       update({ previewVersion: state.previewVersion + 1 });
     },
     async reset() {
-      if (state.busy || (state.bootStarted && !state.linuxReady)) return;
+      if (state.busy || !state.linuxReady) return;
       try {
-        if (state.linuxReady) await runtime.reset();
-        else
-          update({
-            files: { ...starter },
-            previewVersion: state.previewVersion + 1,
-          });
+        await runtime.reset();
       } catch (error) {
         message("WORKSPACE", error.message, true);
       }
     },
     exportApp() {
+      if (!state.files) return;
       const url = URL.createObjectURL(
         new Blob([buildPreview(state.files)], { type: "text/html" }),
       );

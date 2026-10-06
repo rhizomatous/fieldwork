@@ -8,6 +8,7 @@ export function PreviewPanel({ state, session }) {
   // Metrics and conversation updates must not reload the user's running app.
   const preview = useMemo(() => {
     const channel = crypto.randomUUID();
+    if (!state.files) return { channel, html: "" };
     try {
       return { channel, html: buildPreview(state.files, channel) };
     } catch (error) {
@@ -40,6 +41,7 @@ export function PreviewPanel({ state, session }) {
         </h2>
         <div className="preview-tools">
           <button
+            disabled={!state.files}
             id="viewport"
             className="icon-button"
             aria-label={`Switch to ${narrow ? "wide" : "narrow"} preview`}
@@ -49,6 +51,7 @@ export function PreviewPanel({ state, session }) {
             ▯
           </button>
           <button
+            disabled={!state.files}
             id="refresh"
             className="icon-button"
             aria-label="Refresh preview"
@@ -58,6 +61,7 @@ export function PreviewPanel({ state, session }) {
             ↻
           </button>
           <button
+            disabled={!state.files}
             id="export"
             className="text-button"
             onClick={() => session.exportApp()}
@@ -67,7 +71,7 @@ export function PreviewPanel({ state, session }) {
           <button
             id="reset"
             className="text-button"
-            disabled={state.busy || (state.bootStarted && !state.linuxReady)}
+            disabled={state.busy || !state.linuxReady}
             onClick={() => session.reset()}
           >
             Reset
@@ -78,17 +82,36 @@ export function PreviewPanel({ state, session }) {
         <span className="dot" />
         <span>workspace / index.html</span>
         <span id="preview-status">
-          {state.linuxReady ? "Shared with Linux" : "Starter app"}
+          {state.files ? "Shared with Linux" : "Workspace not open"}
         </span>
       </div>
       <div className={`preview-stage${narrow ? " narrow" : ""}`}>
-        <iframe
-          ref={frame}
-          id="preview"
-          title="Live app preview"
-          sandbox="allow-scripts"
-          srcDoc={preview.html}
-        />
+        {state.files ? (
+          <iframe
+            ref={frame}
+            id="preview"
+            title="Live app preview"
+            sandbox="allow-scripts"
+            srcDoc={preview.html}
+          />
+        ) : (
+          <div className="preview-placeholder" role="status">
+            <h3>
+              {state.agentStatus.kind === "error"
+                ? "Workspace unavailable"
+                : state.bootStarted
+                  ? "Opening your workspace…"
+                  : "Your workspace preview"}
+            </h3>
+            <p>
+              {state.agentStatus.kind === "error"
+                ? "Open the boot console for details, then reload to try again."
+                : state.bootStarted
+                  ? "Your app will appear once Linux has opened its files."
+                  : "Start Linux to open your workspace."}
+            </p>
+          </div>
+        )}
       </div>
       <div className="preview-footer">
         <span>
@@ -97,7 +120,7 @@ export function PreviewPanel({ state, session }) {
         <span id="revision">
           {state.revision
             ? `Revision ${state.revision} · saved in workspace`
-            : "Ready for your first edit"}
+            : "Waiting for workspace"}
         </span>
       </div>
       <p id="preview-error" role="status" hidden={!errorText}>
