@@ -1,21 +1,37 @@
 import { useLayoutEffect, useRef } from "react";
-import { WorkspaceSetup } from "./WorkspaceSetup.jsx";
 
-export function Conversation({ state, onBoot }) {
+export function Conversation({ state }) {
   const log = useRef(null);
+  const ready = state.linuxReady && state.modelReady;
+  const emptyTitle = ready
+    ? "What would you like to change?"
+    : state.linuxReady
+      ? "Load a model to begin"
+      : state.modelReady
+        ? "Start Linux to begin"
+        : "Start Linux and load a model";
   useLayoutEffect(() => {
     log.current.scrollTop = log.current.scrollHeight;
   }, [state.messages]);
   return (
     <div
       ref={log}
-      className="conversation"
+      className={`conversation${state.messages.length === 0 ? " is-empty" : ""}`}
       id="conversation"
       role="log"
       aria-live="polite"
       aria-relevant="additions"
     >
-      <WorkspaceSetup state={state} onBoot={onBoot} />
+      {state.messages.length === 0 && (
+        <div className="agent-empty-state">
+          <h2>{emptyTitle}</h2>
+          <p>
+            {ready
+              ? "Describe a change to your app, and Pi will get to work."
+              : "Use the panels below. Once both are ready, you can ask Fieldwork to edit your app."}
+          </p>
+        </div>
+      )}
       {state.messages.map((item) =>
         item.tool ? (
           <div key={item.id} className="tool-event">

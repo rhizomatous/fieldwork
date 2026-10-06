@@ -18,7 +18,11 @@ function setup() {
   const session = createSession({
     runtime,
     worker,
-    gpu: { requestAdapter: async () => ({}) },
+    gpu: {
+      requestAdapter: async () => ({
+        limits: { maxStorageBuffersPerShaderStage: 10 },
+      }),
+    },
   });
   const emit = (type, detail) =>
     runtime.dispatchEvent(new CustomEvent(type, { detail }));

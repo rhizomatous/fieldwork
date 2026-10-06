@@ -13,7 +13,7 @@ npm run guest
 npm run dev -- --port 5199 --strictPort
 ```
 
-Open <http://127.0.0.1:5199>. Click **Start Linux** and **Load model**, then submit a small change when both are ready. The first model load downloads roughly 0.8 GB for the default 1.5B model and caches the weights. The GPU-memory estimate is larger than the weight download. Linux and Pi startup under emulation can take a minute or longer depending on hardware; the boot console exposes the actual Linux shell and diagnostics.
+Open <http://127.0.0.1:5199>. Click **Start Linux** and **Load model**, then submit a small change when both are ready. The only model is Qwen3 4B (4-bit); its weights download on first use and are cached locally. Linux and Pi startup under emulation can take a minute or longer depending on hardware; the boot console exposes the actual Linux shell and diagnostics.
 
 A useful first prompt for the small default model:
 
@@ -45,7 +45,7 @@ flowchart LR
 
 ## React shell
 
-Fieldwork uses React with Vite. `index.html` is the entry point; `src/App.jsx` composes the agent, inference, preview, and console panels in `src/components/`. The generated workspace app remains vanilla HTML/CSS/JavaScript.
+Fieldwork uses React with Vite. `index.html` is the entry point; `src/App.jsx` composes the chat, inference, Linux, preview, and console panels in `src/components/`. The generated workspace app remains vanilla HTML/CSS/JavaScript.
 
 `src/fieldwork.js` creates one session per page. `src/session.js` owns runtime events, inference requests, commands, and an immutable state snapshot. React subscribes with `useSyncExternalStore`; components never construct the VM or worker. React Strict Mode is enabled. The console stays mounted when hidden, and the iframe document changes only when workspace files change or the user refreshes it, preserving app state during metrics and conversation updates.
 
@@ -65,7 +65,7 @@ No guest network device is configured. Model downloads are the main external req
 - Wanix and extras: `0.4.0-rc2`. The npm default tags differ; pin the explicit version.
 - Wanix's standard Go WASM build is used. The smaller TinyGo build exhausted its heap while unpacking the Pi filesystem in testing.
 - Alpine: 3.22, x86; Node 22; Pi: `@mariozechner/pi-coding-agent@0.73.1`. This established release has a tested provider/RPC interface; upstream has since renamed its packages. The guest dependency graph is locked in `guest/package-lock.json`.
-- WebLLM: `0.2.85`. Default model: Qwen2.5-Coder 1.5B, 4-bit, 4,096-token context. The 3B and Qwen3 4B options are experimental alternatives, not benchmarked defaults.
+- WebLLM: `0.2.85`. Model: Qwen3 4B, 4-bit, 4,096-token context. Earlier validation notes below refer to the original 1.5B prototype.
 - Guest memory: 512 MiB, plus Wanix, the root filesystem, model allocations, and browser overhead.
 - Current generated rootfs: approximately 36 MiB compressed. This is a working baseline, not a minimal image.
 

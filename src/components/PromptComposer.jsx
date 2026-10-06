@@ -10,12 +10,7 @@ const suggestions = [
     "Add a reset button that resets the little joys counter to zero.",
   ],
 ];
-export function PromptComposer({
-  state,
-  session,
-  consoleOpen,
-  onToggleConsole,
-}) {
+export function PromptComposer({ state, session }) {
   const [prompt, setPrompt] = useState("");
   const input = useRef(null);
   const canSend = state.linuxReady && state.modelReady && !state.busy;
@@ -91,18 +86,6 @@ export function PromptComposer({
           </button>
         </div>
       </form>
-      <div className="workspace-meta">
-        <span id="storage">{state.storage}</span>
-        <button
-          id="console-toggle"
-          className="text-button"
-          aria-expanded={consoleOpen}
-          aria-controls="console-panel"
-          onClick={onToggleConsole}
-        >
-          Boot console
-        </button>
-      </div>
     </div>
   );
 }

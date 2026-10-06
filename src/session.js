@@ -1,17 +1,8 @@
+import { gpuSupportError } from "./gpu-support.js";
 import { buildPreview } from "./protocol.js";
 
 export const models = [
-  {
-    id: "Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC",
-    label: "Qwen2.5 Coder · 1.5B",
-    memory: "1.6",
-  },
-  {
-    id: "Qwen2.5-Coder-3B-Instruct-q4f16_1-MLC",
-    label: "Qwen2.5 Coder · 3B",
-    memory: "2.5",
-  },
-  { id: "Qwen3-4B-q4f16_1-MLC", label: "Qwen3 · 4B", memory: "3.4" },
+  { id: "Qwen3-4B-q4f16_1-MLC", label: "Qwen3 4B", memory: "3.4" },
 ];
 const modelDetail = (id) =>
   `4-bit weights · ~${models.find((m) => m.id === id).memory} GB estimated GPU memory · download on first use`;
@@ -31,6 +22,7 @@ export function createSession({
     nextId = 0;
   let state = {
     linuxReady: false,
+    linuxStatus: status("Off"),
     bootStarted: false,
     bootLabel: "Start Linux",
     modelReady: false,
@@ -94,18 +86,18 @@ export function createSession({
     switch (event.type) {
       case "boot":
         diagnostic(event.message);
-        update({ agentStatus: status("Starting Pi", "busy") });
+        update({
+          linuxStatus: status("Running", "ready"),
+          agentStatus: status("Starting", "busy"),
+        });
         break;
       case "ready":
         update({
           linuxReady: true,
+          linuxStatus: status("Running", "ready"),
           agentStatus: status("Ready", "ready"),
           bootLabel: "Linux running",
         });
-        message(
-          "WORKSPACE",
-          "Pi is ready. The preview now reads the files inside Linux.",
-        );
         break;
       case "diagnostic":
         diagnostic(event.message);
@@ -275,16 +267,19 @@ export function createSession({
   };
   async function checkGPU() {
     try {
-      const adapter = await gpu?.requestAdapter();
+      const adapter = await gpu?.requestAdapter({
+        powerPreference: "high-performance",
+      });
+      const compatibilityError = gpuSupportError(adapter);
       update({
-        gpuAvailable: !!adapter,
+        gpuAvailable: !compatibilityError,
         gpuLabel: adapter
           ? `WebGPU available${adapter.info?.architecture ? " · " + adapter.info.architecture : ""}`
           : "WebGPU unavailable",
-        ...(!adapter
+        ...(compatibilityError
           ? {
-              loadDetail:
-                "Open in a desktop browser with WebGPU and hardware acceleration enabled.",
+              modelStatus: status("Unsupported", "error"),
+              loadDetail: compatibilityError,
             }
           : {}),
       });
@@ -303,13 +298,15 @@ export function createSession({
       if (state.bootStarted) return;
       update({
         bootStarted: true,
+        linuxStatus: status("Booting", "busy"),
         bootLabel: "Booting…",
-        agentStatus: status("Booting Linux", "busy"),
+        agentStatus: status("Waiting", "busy"),
       });
       try {
         await runtime.boot(mount);
       } catch (error) {
         update({
+          linuxStatus: status("Failed", "error"),
           agentStatus: status("Boot failed", "error"),
           bootLabel: "Reload to retry",
         });

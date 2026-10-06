@@ -308,7 +308,7 @@ button[hidden],
 textarea {
   display: block;
   width: 100%;
-  resize: vertical;
+  resize: none;
   min-height: 60px;
   max-height: 150px;
   border: 0;
@@ -321,8 +321,18 @@ textarea {
 textarea::placeholder {
   color: oklch(62% 0.01 90);
 }
-textarea:focus-visible {
-  outline-offset: -3px;
+#prompt-form:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px oklch(43% 0.065 145 / 0.10);
+}
+#prompt:focus {
+  outline: none;
+}
+@media (forced-colors: active) {
+  #prompt-form:focus-within {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
 }
 .composer-footer {
   padding: 6px 9px 9px 13px;
@@ -732,4 +742,122 @@ iframe {
   font-size: 14px;
   line-height: 1.6;
   margin: 0;
+}
+
+/* Compact runtime controls leave the upper two thirds for conversation. */
+.runtime-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border-top: 1px solid var(--line);
+  min-height: 0;
+  overflow: auto;
+}
+.runtime-panels > section {
+  min-width: 0;
+  padding: 18px;
+  border-top: 0;
+}
+.linux-panel {
+  border-left: 1px solid var(--line);
+}
+.runtime-panels h2 {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 620;
+}
+.runtime-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  font-size: 11px;
+}
+.runtime-status .status {
+  flex-shrink: 0;
+}
+.runtime-panels .button {
+  margin-top: 12px;
+  width: 100%;
+}
+.decode-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+  font-size: 11px;
+  line-height: 24px;
+}
+.decode-label,
+.decode-unit {
+  color: var(--muted);
+  font-weight: 400;
+}
+.decode-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+.decode-stat #speed {
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.decode-unit {
+  font-size: 10px;
+}
+.runtime-footnote,
+.runtime-detail {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 10px 0 0;
+  overflow-wrap: anywhere;
+}
+.runtime-footnote {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 4px;
+}
+.runtime-panels progress {
+  width: 100%;
+  margin: 10px 0 0;
+}
+@media (max-width: 900px) {
+  .runtime-panels > section {
+    padding: 14px 12px;
+  }
+  .runtime-status {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}
+@media (max-width: 680px) {
+  .runtime-panels {
+    min-height: 220px;
+  }
+}
+
+.conversation.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.agent-empty-state {
+  max-width: 280px;
+  text-align: center;
+}
+.agent-empty-state h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 550;
+}
+.agent-empty-state p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
 }

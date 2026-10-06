@@ -1,3 +1,4 @@
+import { gpuSupportError } from "./gpu-support.js";
 import { CreateMLCEngine } from "@mlc-ai/web-llm";
 import { inferenceRequest, parseAction } from "./protocol.js";
 let engine;
@@ -12,6 +13,11 @@ self.onmessage = async ({ data }) => {
   }
   if (data.type === "load") {
     try {
+      const adapter = await navigator.gpu?.requestAdapter({
+        powerPreference: "high-performance",
+      });
+      const compatibilityError = gpuSupportError(adapter);
+      if (compatibilityError) throw new Error(compatibilityError);
       await engine?.unload();
       engine = await CreateMLCEngine(
         data.model,
