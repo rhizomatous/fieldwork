@@ -1,0 +1,43 @@
+.about-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  color: var(--color-text);
+  background: var(--color-bg-surface);
+  box-shadow: 0 16px 64px var(--color-shadow-overlay);
+  overflow: auto;
+}
+.about-dialog::backdrop {
+  background: oklch(from var(--color-shadow) l c h / 0.55);
+}
+.about-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+.about-heading h2 {
+  margin: 0;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-heading);
+}
+.about-copy {
+  padding: 20px 24px 24px;
+  font-size: var(--font-size-body-large);
+  line-height: var(--line-height-message);
+}
+.about-copy p { margin: 0 0 18px; }
+.about-copy ul { margin: 0 0 18px; padding-left: 20px; }
+.about-copy li + li { margin-top: 10px; }
+.about-copy strong { font-weight: var(--font-weight-semibold); }
+.about-copy a {
+  color: var(--color-accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.about-copy a:hover { color: var(--color-accent-hover); }
+.about-copy .about-signature { margin-bottom: 0; }
