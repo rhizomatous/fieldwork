@@ -45,9 +45,9 @@ flowchart LR
 
 ## React shell
 
-Fieldwork uses React with Vite. `index.html` is the entry point; `src/App.jsx` composes the chat, inference, Linux, preview, and console panels in `src/components/`. The generated workspace app remains vanilla HTML/CSS/JavaScript.
+Fieldwork uses React with Vite. `index.html` is the entry point; `src/App.tsx` composes the chat, inference, Linux, preview, and console panels in `src/components/`. The generated workspace app remains vanilla HTML/CSS/JavaScript.
 
-`src/fieldwork.js` creates one session per page. `src/session.js` owns runtime events, inference requests, commands, and an immutable state snapshot. React subscribes with `useSyncExternalStore`; components never construct the VM or worker. React Strict Mode is enabled. The console stays mounted when hidden, and the iframe document changes only when workspace files change or the user refreshes it, preserving app state during metrics and conversation updates.
+`src/fieldwork.ts` creates one session per page. `src/session.ts` owns runtime events, inference requests, commands, and an immutable state snapshot. React subscribes with `useSyncExternalStore`; components never construct the VM or worker. React Strict Mode is enabled. The console stays mounted when hidden, and the iframe document changes only when workspace files change or the user refreshes it, preserving app state during metrics and conversation updates.
 
 ## Execution boundaries
 
@@ -100,7 +100,7 @@ Built on [Wanix](https://github.com/tractordev/wanix), [v86](https://github.com/
 
 ## Shared React components
 
-Each component in `src/design-system` imports its own adjacent CSS file. Import components directly from their JSX files; shared color and typography tokens load once in `src/main.jsx`; app layout lives in `src/App.css`, and each panel imports its own adjacent CSS file. `src/style.css` contains global defaults and shared pane-heading/runtime-status styles. Runtime state/actions stay in the panels.
+Each component in `src/design-system` imports its own adjacent CSS file. Import components directly from their JSX files; shared color and typography tokens load once in `src/main.tsx`; app layout lives in `src/App.css`, and each panel imports its own adjacent CSS file. `src/style.css` contains global defaults and shared pane-heading/runtime-status styles. Runtime state/actions stay in the panels.
 
 | Component         | API                                                                                                                                                                                                                                                  |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -111,8 +111,8 @@ Each component in `src/design-system` imports its own adjacent CSS file. Import 
 | `EmptyState`      | `title` and supporting copy as children, with `headingLevel` (2 or 3) for document structure. Shared typography and alignment; containing panels own width, padding, and placement.                                                                  |
 
 ```jsx
-import { Button } from "./design-system/Button.jsx";
-import { StatusIndicator } from "./design-system/StatusIndicator.jsx";
+import { Button } from "./design-system/Button.tsx";
+import { StatusIndicator } from "./design-system/StatusIndicator.tsx";
 
 <Button variant="primary" onClick={loadModel}>Load model</Button>
 <StatusIndicator value={{ text: "Ready", kind: "ready" }} />
@@ -122,7 +122,7 @@ Button classes follow `ds-button` (base), `ds-button--{variant}`, `ds-button--{s
 
 ## Color system
 
-`src/design-system/tokens/colors.css` is the source of truth for Fieldwork's colors, imported by `src/main.jsx`. Use semantic CSS variables in component styles rather than literal colors. Existing colors are preserved; this is an extraction, not a new theme.
+`src/design-system/tokens/colors.css` is the source of truth for Fieldwork's colors, imported by `src/main.tsx`. Use semantic CSS variables in component styles rather than literal colors. Existing colors are preserved; this is an extraction, not a new theme.
 
 | Role              | Tokens                                                                                                                         |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -140,7 +140,7 @@ The editable starter app is a separate document with its own palette; these toke
 
 ## Typography system
 
-`src/design-system/tokens/typography.css` is the source of truth for shell typography. It is imported alongside the color tokens in `src/main.jsx`. The existing sizes and fine weight differences are preserved rather than normalized into a new scale.
+`src/design-system/tokens/typography.css` is the source of truth for shell typography. It is imported alongside the color tokens in `src/main.tsx`. The existing sizes and fine weight differences are preserved rather than normalized into a new scale.
 
 - `--font-family-sans` for interface copy; `--font-family-mono` for technical output.
 - `--font-size-*` for micro, caption, meta, control, body, body-large, heading, icons, metrics, and branding. Existing display sizes remain available for retained styles.
@@ -176,3 +176,9 @@ The title-bar Theme control offers System (the default), Light, and Dark. The se
 [Oxfmt](https://oxc.rs/docs/guide/usage/formatter/config.html) uses an 80-column layout, two-space indentation, double quotes, and semicolons. Oxfmt alphabetizes imports within groups (Node built-ins, packages, internal modules, parent modules, and sibling modules), separated by blank lines. Side-effect imports, including CSS, stay in their original positions to preserve initialization and cascade order. Oxlint enforces a blank line after the import block. Generated assets, dependencies, caches, and lockfiles are excluded from formatting.
 
 [Oxlint](https://oxc.rs/docs/guide/usage/linter/config) enables correctness and suspicious checks across JavaScript, React/hooks, accessibility, imports, Unicorn, and Oxc rules, plus explicit equality, const, no-var, and mandatory-brace rules. Browser, worker, and Node environments are configured separately. Exceptions accommodate automatic JSX, CSS side-effect imports, intentional event-handler properties, and valid ARIA status/log roles. Worker messaging is exempt from the window-only target-origin rule. Documented inline exceptions preserve intentional chat-scroll and preview-refresh dependencies.
+
+## TypeScript
+
+The React shell, design-system components, and session controller use strict TypeScript. Vite serves `.ts` and `.tsx` directly during development; `npm run dev` requires no preceding compilation. `npm run typecheck` runs `tsc --noEmit` for validation only, and is included in `npm run check`. The production build remains Vite's existing build.
+
+The inference worker, Wanix runtime adapter, protocol/GPU/starter helpers shared with standalone scripts, guest code, and Node scripts/tests remain JavaScript. Shared session and bridge contracts live in `src/types.ts`; the Wanix adapter exposes its event types through JSDoc. JavaScript modules are allowed at that boundary without enabling whole-project JS type checking. Tests import the TypeScript session directly using Node's native type stripping (Node 22.18+ or a newer supported release).

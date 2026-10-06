@@ -1,10 +1,11 @@
-import "./Conversation.css";
 import { useLayoutEffect, useRef } from "react";
 
-import { EmptyState } from "../design-system/EmptyState.jsx";
+import "./Conversation.css";
+import { EmptyState } from "../design-system/EmptyState.tsx";
+import type { SessionState } from "../types.ts";
 
-export function Conversation({ state }) {
-  const log = useRef(null);
+export function Conversation({ state }: { state: SessionState }) {
+  const log = useRef<HTMLDivElement>(null);
   const ready = state.linuxReady && state.modelReady;
   const emptyTitle = ready
     ? "What would you like to change?"
@@ -14,7 +15,9 @@ export function Conversation({ state }) {
         ? "Start Linux to begin"
         : "Start Linux and load a model";
   useLayoutEffect(() => {
-    log.current.scrollTop = log.current.scrollHeight;
+    if (log.current) {
+      log.current.scrollTop = log.current.scrollHeight;
+    }
     // New messages trigger scrolling; metrics updates must not move the viewport.
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [state.messages]);

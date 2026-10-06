@@ -1,6 +1,10 @@
+import type { RefObject } from "react";
+
+import { Button } from "../design-system/Button.tsx";
+
 import "./BootConsole.css";
-import { Button } from "../design-system/Button.jsx";
-import { EmptyState } from "../design-system/EmptyState.jsx";
+import { EmptyState } from "../design-system/EmptyState.tsx";
+import type { Status } from "../types.ts";
 
 export function BootConsole({
   open,
@@ -9,6 +13,13 @@ export function BootConsole({
   diagnostics,
   bootStarted,
   linuxStatus,
+}: {
+  open: boolean;
+  onClose: () => void;
+  mountRef: RefObject<HTMLDivElement | null>;
+  diagnostics: string;
+  bootStarted: boolean;
+  linuxStatus: Status;
 }) {
   // Keep mounted while hidden: Wanix owns the descendants of this empty div.
   return (

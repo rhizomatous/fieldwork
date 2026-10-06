@@ -1,5 +1,5 @@
 import { LinuxRuntime } from "./runtime.js";
-import { createSession } from "./session.js";
+import { createSession } from "./session.ts";
 
 export const session = createSession({
   runtime: new LinuxRuntime(),

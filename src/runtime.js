@@ -9,6 +9,20 @@ export class LinuxRuntime extends EventTarget {
   seenRequests = new Set();
   busy = false;
 
+  /**
+   * @template {keyof import('./types.ts').RuntimeEvents} K
+   * @param {K} type
+   * @param {(event: CustomEvent<import('./types.ts').RuntimeEvents[K]>) => void} listener
+   * @param {boolean | AddEventListenerOptions} [options]
+   */
+  addEventListener(type, listener, options) {
+    super.addEventListener(
+      type,
+      /** @type {EventListener} */ (listener),
+      options,
+    );
+  }
+
   emit(type, detail) {
     this.dispatchEvent(new CustomEvent(type, { detail }));
   }

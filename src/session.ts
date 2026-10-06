@@ -1,12 +1,16 @@
 import { gpuSupportError } from "./gpu-support.js";
 import { buildPreview } from "./protocol.js";
+import type { Runtime, SessionState, Status, WorkerMessage } from "./types.ts";
 
 export const models = [
   { id: "Qwen3-4B-q4f16_1-MLC", label: "Qwen3 4B", memory: "3.4" },
 ];
-const modelDetail = (id) =>
-  `4-bit weights · ~${models.find((m) => m.id === id).memory} GB estimated GPU memory · download on first use`;
-const status = (text, kind = "") => ({ text, kind });
+const modelDetail = (id: string) =>
+  `4-bit weights · ~${models.find((m) => m.id === id)?.memory} GB estimated GPU memory · download on first use`;
+const status = (text: string, kind: Status["kind"] = ""): Status => ({
+  text,
+  kind,
+});
 
 // Owns one VM and one worker for the page lifetime. React only subscribes;
 // mounting, unmounting, and Strict Mode never construct or restart either one.
@@ -14,13 +18,17 @@ export function createSession({
   runtime,
   worker,
   gpu = globalThis.navigator?.gpu,
+}: {
+  runtime: Runtime;
+  worker: Worker;
+  gpu?: GPU;
 }) {
-  const listeners = new Set();
-  let activeRequest = null,
-    turnChanged = false,
-    assistantId = null,
+  const listeners = new Set<() => void>();
+  let activeRequest: string | null = null;
+  let turnChanged = false,
+    assistantId: number | null = null,
     nextId = 0;
-  let state = {
+  let state: SessionState = {
     linuxReady: false,
     linuxStatus: status("Off"),
     bootStarted: false,
@@ -49,18 +57,18 @@ export function createSession({
     inferenceNote: "No API key. No inference server.",
   };
 
-  function update(patch) {
+  function update(patch: Partial<SessionState>) {
     state = { ...state, ...patch };
     listeners.forEach((listener) => listener());
   }
 
-  function message(who, text, error = false) {
+  function message(who: string, text: string, error = false) {
     const id = ++nextId;
     update({ messages: [...state.messages, { id, who, text, error }] });
     return id;
   }
 
-  function diagnostic(text) {
+  function diagnostic(text: string) {
     update({ diagnostics: (state.diagnostics + text + "\n").slice(-24000) });
   }
 
@@ -79,7 +87,7 @@ export function createSession({
     });
   }
 
-  function fatal(text) {
+  function fatal(text: string) {
     update({ linuxReady: false });
     done();
     update({
@@ -150,13 +158,14 @@ export function createSession({
         break;
       case "message_update":
         if (event.assistantMessageEvent?.type === "text_delta") {
+          const delta = event.assistantMessageEvent.delta || "";
           assistantId ??= message("PI", "");
           update({
             messages: state.messages.map((item) =>
               item.id === assistantId
                 ? {
                     ...item,
-                    text: item.text + event.assistantMessageEvent.delta,
+                    text: item.text + delta,
                   }
                 : item,
             ),
@@ -212,13 +221,14 @@ export function createSession({
       activeRequest = detail.id;
       update({ modelStatus: status("Generating", "busy") });
       worker.postMessage({ type: "generate", ...detail });
-    } catch (error) {
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause));
       message("BRIDGE", error.message, true);
       done();
     }
   });
 
-  worker.onmessage = async ({ data }) => {
+  worker.onmessage = async ({ data }: MessageEvent<WorkerMessage>) => {
     if (data.type === "progress") {
       update({ progress: data.progress || 0, loadDetail: data.text });
     }
@@ -259,7 +269,7 @@ export function createSession({
         ...(data.usage
           ? {
               prefill: data.usage.input.toLocaleString(),
-              speed: Number.isFinite(speed) ? speed.toFixed(1) : "—",
+              speed: Number.isFinite(speed) ? speed!.toFixed(1) : "—",
             }
           : {}),
         inferenceNote: data.error
@@ -269,7 +279,8 @@ export function createSession({
       });
       try {
         await runtime.respond(data);
-      } catch (error) {
+      } catch (cause) {
+        const error = cause instanceof Error ? cause : new Error(String(cause));
         message("BRIDGE", error.message, true);
         done();
       }
@@ -292,7 +303,9 @@ export function createSession({
     if (request) {
       runtime
         .respond({ id: request, error })
-        .catch((bridgeError) => message("BRIDGE", bridgeError.message, true));
+        .catch((bridgeError: Error) =>
+          message("BRIDGE", bridgeError.message, true),
+        );
     }
   };
 
@@ -315,7 +328,8 @@ export function createSession({
             }
           : {}),
       });
-    } catch (error) {
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause));
       update({ gpuLabel: "WebGPU unavailable", loadDetail: error.message });
     }
   }
@@ -324,11 +338,11 @@ export function createSession({
 
   return {
     getSnapshot: () => state,
-    subscribe: (listener) => {
+    subscribe: (listener: () => void) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    async boot(mount) {
+    async boot(mount: HTMLElement) {
       if (state.bootStarted) {
         return;
       }
@@ -340,7 +354,8 @@ export function createSession({
       });
       try {
         await runtime.boot(mount);
-      } catch (error) {
+      } catch (cause) {
+        const error = cause instanceof Error ? cause : new Error(String(cause));
         update({
           linuxStatus: status("Failed", "error"),
           agentStatus: status("Boot failed", "error"),
@@ -365,7 +380,7 @@ export function createSession({
       });
       worker.postMessage({ type: "load", model: state.model });
     },
-    selectModel(model) {
+    selectModel(model: string) {
       if (state.busy || state.loading || !models.some((m) => m.id === model)) {
         return;
       }
@@ -377,7 +392,7 @@ export function createSession({
         loadDetail: modelDetail(model),
       });
     },
-    async send(text) {
+    async send(text: string) {
       text = text.trim();
       if (!text || state.busy || !state.linuxReady || !state.modelReady) {
         return false;
@@ -386,7 +401,8 @@ export function createSession({
       message("YOU", text);
       try {
         await runtime.command("prompt", text);
-      } catch (error) {
+      } catch (cause) {
+        const error = cause instanceof Error ? cause : new Error(String(cause));
         message("WORKSPACE", error.message, true);
         done();
       }
@@ -399,7 +415,8 @@ export function createSession({
       worker.postMessage({ type: "cancel" });
       try {
         await runtime.command("abort");
-      } catch (error) {
+      } catch (cause) {
+        const error = cause instanceof Error ? cause : new Error(String(cause));
         message("WORKSPACE", error.message, true);
         done();
       }
@@ -420,7 +437,8 @@ export function createSession({
         activeRequest = null;
         turnChanged = false;
         update({ messages: [] });
-      } catch (error) {
+      } catch (cause) {
+        const error = cause instanceof Error ? cause : new Error(String(cause));
         message("WORKSPACE", error.message, true);
       } finally {
         update({ resettingChat: false });
@@ -434,7 +452,8 @@ export function createSession({
       update({ busy: true });
       try {
         await runtime.reset();
-      } catch (error) {
+      } catch (cause) {
+        const error = cause instanceof Error ? cause : new Error(String(cause));
         message("WORKSPACE", error.message, true);
       } finally {
         done();

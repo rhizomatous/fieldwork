@@ -1,14 +1,14 @@
 import "./Header.css";
 import { useRef } from "react";
 
-import { Button } from "../design-system/Button.jsx";
-import { Wordmark } from "../design-system/Wordmark.jsx";
+import { Button } from "../design-system/Button.tsx";
+import { Wordmark } from "../design-system/Wordmark.tsx";
 
-import { AboutDialog } from "./AboutDialog.jsx";
-import { ThemeControl } from "./ThemeControl.jsx";
+import { AboutDialog } from "./AboutDialog.tsx";
+import { ThemeControl } from "./ThemeControl.tsx";
 
 export function Header() {
-  const about = useRef(null);
+  const about = useRef<HTMLDialogElement>(null);
   return (
     <header className="app-header">
       <Wordmark />
@@ -16,7 +16,7 @@ export function Header() {
         <Button
           variant="secondary"
           size="small"
-          onClick={() => about.current.showModal()}
+          onClick={() => about.current?.showModal()}
         >
           What is this?
         </Button>

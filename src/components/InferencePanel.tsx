@@ -1,8 +1,10 @@
-import "./InferencePanel.css";
-import { Button } from "../design-system/Button.jsx";
-import { StatusIndicator } from "../design-system/StatusIndicator.jsx";
+import { Button } from "../design-system/Button.tsx";
 
-export function InferencePanel({ state, session }) {
+import "./InferencePanel.css";
+import { StatusIndicator } from "../design-system/StatusIndicator.tsx";
+import type { PanelProps } from "../types.ts";
+
+export function InferencePanel({ state, session }: PanelProps) {
   const showDetail =
     state.loading || state.modelStatus.kind === "error" || !state.gpuAvailable;
   return (

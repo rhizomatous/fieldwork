@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createSession } from "../src/session.js";
+import { createSession } from "../src/session.ts";
 import { starter } from "../src/starter.js";
 
 function setup() {

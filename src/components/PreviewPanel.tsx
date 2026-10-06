@@ -1,13 +1,16 @@
-import "./PreviewPanel.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Button } from "../design-system/Button.jsx";
-import { EmptyState } from "../design-system/EmptyState.jsx";
+import "./PreviewPanel.css";
+import { Button } from "../design-system/Button.tsx";
+import { EmptyState } from "../design-system/EmptyState.tsx";
 import { buildPreview } from "../protocol.js";
+import type { PanelProps } from "../types.ts";
 
-export function PreviewPanel({ state, session }) {
-  const [error, setError] = useState(null);
-  const frame = useRef(null);
+export function PreviewPanel({ state, session }: PanelProps) {
+  const [error, setError] = useState<{ channel: string; text: string } | null>(
+    null,
+  );
+  const frame = useRef<HTMLIFrameElement>(null);
   // Metrics and conversation updates must not reload the user's running app.
   const preview = useMemo(() => {
     const channel = crypto.randomUUID();
@@ -16,14 +19,16 @@ export function PreviewPanel({ state, session }) {
     }
     try {
       return { channel, html: buildPreview(state.files, channel) };
-    } catch (previewError) {
+    } catch (cause) {
+      const previewError =
+        cause instanceof Error ? cause : new Error(String(cause));
       return { channel, html: "", error: previewError.message };
     }
     // Explicit Refresh must rebuild srcDoc even when the file contents are unchanged.
     // oxlint-disable-next-line react/memo-dependencies, react/exhaustive-deps
   }, [state.files, state.previewVersion]);
   useEffect(() => {
-    function onMessage(event) {
+    function onMessage(event: MessageEvent) {
       if (
         event.source === frame.current?.contentWindow &&
         event.data?.channel === preview.channel &&

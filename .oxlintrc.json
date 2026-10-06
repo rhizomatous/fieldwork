@@ -1,6 +1,14 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["eslint", "unicorn", "oxc", "react", "jsx-a11y", "import"],
+  "plugins": [
+    "eslint",
+    "unicorn",
+    "oxc",
+    "react",
+    "jsx-a11y",
+    "import",
+    "typescript"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "error"
@@ -41,7 +49,7 @@
       }
     },
     {
-      "files": ["src/session.js", "src/inference.worker.js"],
+      "files": ["src/session.ts", "src/inference.worker.js"],
       "rules": {
         "unicorn/require-post-message-target-origin": "off"
       }

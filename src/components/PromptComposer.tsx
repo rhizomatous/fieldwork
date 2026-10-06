@@ -1,9 +1,10 @@
-import "./PromptComposer.css";
 import { useState } from "react";
 
-import { ChatBox } from "../design-system/ChatBox.jsx";
+import "./PromptComposer.css";
+import { ChatBox } from "../design-system/ChatBox.tsx";
+import type { PanelProps } from "../types.ts";
 
-const suggestions = [
+const suggestions: [string, string][] = [
   [
     "A warmer palette",
     "Change the page to a warm terracotta color palette. Keep the layout and behavior.",
@@ -14,7 +15,7 @@ const suggestions = [
   ],
 ];
 
-export function PromptComposer({ state, session }) {
+export function PromptComposer({ state, session }: PanelProps) {
   const [prompt, setPrompt] = useState("");
   const canSend = state.linuxReady && state.modelReady && !state.busy;
   const hint = state.resettingChat

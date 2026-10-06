@@ -1,11 +1,14 @@
+import type { ComponentProps } from "react";
+
 import "./Button.css";
 
-/** Native button props are forwarded, including ref, disabled and aria-*.
- * @param {import('react').ButtonHTMLAttributes<HTMLButtonElement> & {
- * variant?: 'secondary'|'primary'|'ghost',
- * size?: 'default'|'small', iconOnly?: boolean, destructive?: boolean
- * }} props
- */
+type ButtonProps = ComponentProps<"button"> & {
+  variant?: "secondary" | "primary" | "ghost";
+  size?: "default" | "small";
+  iconOnly?: boolean;
+  destructive?: boolean;
+};
+
 export function Button({
   variant = "secondary",
   size = "default",
@@ -14,7 +17,7 @@ export function Button({
   className = "",
   type = "button",
   ...props
-}) {
+}: ButtonProps) {
   const classes = [
     "ds-button",
     `ds-button--${variant}`,

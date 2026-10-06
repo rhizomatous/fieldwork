@@ -18,15 +18,16 @@ export function ThemeControl() {
           : preference;
       document.documentElement.dataset.theme = theme;
       document.documentElement.dataset.themePreference = preference;
-      document.querySelector('meta[name="theme-color"]').content =
-        theme === "dark" ? "#191813" : "#f6f5f1";
+      document.querySelector<HTMLMetaElement>(
+        'meta[name="theme-color"]',
+      )!.content = theme === "dark" ? "#191813" : "#f6f5f1";
     };
     apply();
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
   }, [preference]);
 
-  function choose(next) {
+  function choose(next: string) {
     setPreference(next);
     try {
       localStorage.setItem("fieldwork-theme", next);

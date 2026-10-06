@@ -96,7 +96,7 @@ export function parseAction(text, tools) {
   ) {
     throw new Error("The model returned an unknown action.");
   }
-  
+
   if (
     !action.arguments ||
     typeof action.arguments !== "object" ||
@@ -123,7 +123,7 @@ export function buildPreview(files, channel = "") {
   const bootstrap = `<script>const channel=${token};addEventListener('error',e=>parent.postMessage({channel,type:'preview-error',message:e.message},'*'));addEventListener('unhandledrejection',e=>parent.postMessage({channel,type:'preview-error',message:String(e.reason)},'*'));</script>`;
   const style = `<script>{const s=document.createElement('style');s.textContent=${css};document.head.append(s)}</script>`;
   const script = `<script>{const s=document.createElement('script');s.textContent=${js};document.body.append(s)}</script>`;
-  
+
   let html = files["index.html"];
   html = html.replace(
     /<link\b[^>]*href\s*=\s*["'](?:\.\/)?style\.css["'][^>]*>/gi,
@@ -141,8 +141,8 @@ export function buildPreview(files, channel = "") {
   html = /<head\b[^>]*>/i.test(html)
     ? html.replace(/<head\b[^>]*>/i, (match) => match + head)
     : head + html;
-  
-    return /<\/body>/i.test(html)
+
+  return /<\/body>/i.test(html)
     ? html.replace(/<\/body>/i, script + "</body>")
     : html + script;
 }

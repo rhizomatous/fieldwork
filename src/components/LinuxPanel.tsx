@@ -1,6 +1,8 @@
+import { Button } from "../design-system/Button.tsx";
+
 import "./LinuxPanel.css";
-import { Button } from "../design-system/Button.jsx";
-import { StatusIndicator } from "../design-system/StatusIndicator.jsx";
+import { StatusIndicator } from "../design-system/StatusIndicator.tsx";
+import type { SessionState } from "../types.ts";
 
 export function LinuxPanel({
   state,
@@ -8,6 +10,12 @@ export function LinuxPanel({
   onReset,
   consoleOpen,
   onToggleConsole,
+}: {
+  state: SessionState;
+  onBoot: () => void;
+  onReset: () => void;
+  consoleOpen: boolean;
+  onToggleConsole: () => void;
 }) {
   return (
     <section className="linux-panel" aria-labelledby="linux-title">

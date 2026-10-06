@@ -5,10 +5,10 @@ export function gpuSupportError(adapter) {
   }
 
   const limit = adapter.limits.maxStorageBuffersPerShaderStage;
-  
+
   if (limit < 10) {
     return `This browser exposes ${limit} GPU storage buffers per shader stage. WebLLM requires 10. Try an up-to-date Chrome.`;
   }
-  
+
   return null;
 }

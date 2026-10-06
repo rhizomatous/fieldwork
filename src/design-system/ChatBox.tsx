@@ -1,13 +1,24 @@
+import type { FormEvent } from "react";
+
 import "./ChatBox.css";
 import { useId, useRef } from "react";
 
-import { Button } from "./Button.jsx";
+import { Button } from "./Button.tsx";
 
-/** Controlled composer. Enter submits; Shift+Enter inserts a line; IME is preserved.
- * @param {{value: string, onChange: (value:string)=>void, onSend: (value:string)=>void,
- * canSend: boolean, onStop?: ()=>void, showStop?: boolean, hint?: string,
- * suggestions?: Array<[string,string]>, label?: string, placeholder?: string, maxLength?: number}} props
- */
+type ChatBoxProps = {
+  value: string;
+  onChange: (value: string) => void;
+  onSend: (value: string) => void;
+  canSend: boolean;
+  onStop?: () => void;
+  showStop?: boolean;
+  hint?: string;
+  suggestions?: [string, string][];
+  label?: string;
+  placeholder?: string;
+  maxLength?: number;
+};
+
 export function ChatBox({
   value,
   onChange,
@@ -20,11 +31,11 @@ export function ChatBox({
   label = "Message",
   placeholder = "What should we change?",
   maxLength = 4000,
-}) {
+}: ChatBoxProps) {
   const id = useId();
-  const input = useRef(null);
+  const input = useRef<HTMLTextAreaElement>(null);
 
-  function submit(event) {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (canSend && value.trim()) {
       onSend(value);
@@ -42,7 +53,7 @@ export function ChatBox({
               key={suggestionLabel}
               onClick={() => {
                 onChange(text);
-                input.current.focus();
+                input.current?.focus();
               }}
             >
               {suggestionLabel}
@@ -71,7 +82,7 @@ export function ChatBox({
               !event.nativeEvent.isComposing
             ) {
               event.preventDefault();
-              event.currentTarget.form.requestSubmit();
+              event.currentTarget.form?.requestSubmit();
             }
           }}
         />

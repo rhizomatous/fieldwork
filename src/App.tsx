@@ -1,16 +1,17 @@
-import "./App.css";
 import { useRef, useState, useSyncExternalStore } from "react";
 
-import { AgentPanel } from "./components/AgentPanel.jsx";
-import { BootConsole } from "./components/BootConsole.jsx";
-import { Header } from "./components/Header.jsx";
-import { InferencePanel } from "./components/InferencePanel.jsx";
-import { LinuxPanel } from "./components/LinuxPanel.jsx";
-import { PreviewPanel } from "./components/PreviewPanel.jsx";
+import "./App.css";
+import { AgentPanel } from "./components/AgentPanel.tsx";
+import { BootConsole } from "./components/BootConsole.tsx";
+import { Header } from "./components/Header.tsx";
+import { InferencePanel } from "./components/InferencePanel.tsx";
+import { LinuxPanel } from "./components/LinuxPanel.tsx";
+import { PreviewPanel } from "./components/PreviewPanel.tsx";
+import type { Session } from "./types.ts";
 
-export function App({ session }) {
+export function App({ session }: { session: Session }) {
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
-  const mount = useRef(null);
+  const mount = useRef<HTMLDivElement>(null);
   const [consoleOpen, setConsoleOpen] = useState(false);
   return (
     <>
@@ -23,7 +24,7 @@ export function App({ session }) {
             <LinuxPanel
               state={state}
               onReset={() => session.reset()}
-              onBoot={() => session.boot(mount.current)}
+              onBoot={() => mount.current && session.boot(mount.current)}
               consoleOpen={consoleOpen}
               onToggleConsole={() => setConsoleOpen(!consoleOpen)}
             />

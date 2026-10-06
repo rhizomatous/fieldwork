@@ -1,8 +1,14 @@
-import { Button } from "../design-system/Button.jsx";
+import type { RefObject } from "react";
+
+import { Button } from "../design-system/Button.tsx";
 
 import "./AboutDialog.css";
 
-export function AboutDialog({ dialogRef }) {
+export function AboutDialog({
+  dialogRef,
+}: {
+  dialogRef: RefObject<HTMLDialogElement | null>;
+}) {
   return (
     <dialog
       ref={dialogRef}
@@ -13,7 +19,7 @@ export function AboutDialog({ dialogRef }) {
         <h2 id="about-title">What is Fieldwork?</h2>
         <Button
           variant="ghost"
-          onClick={() => dialogRef.current.close()}
+          onClick={() => dialogRef.current?.close()}
           autoFocus
         >
           Close
