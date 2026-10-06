@@ -100,7 +100,7 @@ Built on [Wanix](https://github.com/tractordev/wanix), [v86](https://github.com/
 
 ## Color system
 
-`src/styles/colors.css` is the source of truth for Fieldwork aide's colors, imported by `src/style.css`. Use semantic CSS variables in component styles rather than literal colors. Existing colors are preserved; this is an extraction, not a new theme.
+`src/styles/colors.css` is the source of truth for Fieldwork's colors, imported by `src/style.css`. Use semantic CSS variables in component styles rather than literal colors. Existing colors are preserved; this is an extraction, not a new theme.
 
 | Role | Tokens |
 | --- | --- |
@@ -115,3 +115,26 @@ Built on [Wanix](https://github.com/tractordev/wanix), [v86](https://github.com/
 For example, use `color: var(--color-text-muted)` for supporting copy and `border: 1px solid var(--color-border)` for dividers. Ready indicators and focus alias the accent; translucent variants derive from their base tokens using relative OKLCH colors so they stay in sync. Shadow geometry stays in component CSS. `transparent`, `inherit`, and `currentColor` remain valid structural values. In forced-color mode, focus uses the system `Highlight` color. The browser theme-color in `index.html` is a deliberate static duplicate for simplicity.
 
 The editable starter app is a separate document with its own palette; these tokens do not leak into it or override Wanix's terminal internals.
+
+## Typography system
+
+`src/styles/typography.css` is the source of truth for shell typography. It is imported alongside the color tokens in `src/style.css`. The existing sizes and fine weight differences are preserved rather than normalized into a new scale.
+
+- `--font-family-sans` for interface copy; `--font-family-mono` for technical output.
+- `--font-size-*` for micro, caption, meta, control, body, body-large, heading, icons, metrics, and branding. Existing display sizes remain available for retained styles.
+- `--font-weight-*` for light, regular, medium, emphasis, semibold, heading, and brand.
+- `--line-height-*` for solid, display, compact, body, intro, message, and the fixed-height status row.
+- `--letter-spacing-*` for normal, tight, brand, brand-suffix, and small uppercase labels.
+- `--font-numeric-data` for stable-width changing numbers.
+
+Example:
+
+```css
+.panel-heading {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-body-large);
+  font-weight: var(--font-weight-heading);
+}
+```
+
+Use longhand properties when you want to retain inherited weight and leading. Existing `font` shorthands still reset those properties, matching their original behavior. `font: inherit` and `font-synthesis: none` remain structural declarations, not tokens. The starter app and Wanix terminal retain their own typography.

@@ -1,7 +1,8 @@
 @import "./styles/colors.css";
+@import "./styles/typography.css";
 
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-family-sans);
   color: var(--color-text);
   background: var(--color-bg-canvas);
   font-synthesis: none;
@@ -60,18 +61,18 @@ button[hidden],
   gap: 9px;
   color: inherit;
   text-decoration: none;
-  font-size: 22px;
-  font-weight: 650;
-  letter-spacing: -0.9px;
+  font-size: var(--font-size-brand);
+  font-weight: var(--font-weight-brand);
+  letter-spacing: var(--letter-spacing-brand);
 }
 .brand-symbol {
-  font-size: 26px;
+  font-size: var(--font-size-brand-symbol);
   color: var(--color-accent);
 }
 .edition {
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  font-weight: 550;
+  font-size: var(--font-size-caption);
+  letter-spacing: var(--letter-spacing-wide);
+  font-weight: var(--font-weight-emphasis);
   color: var(--color-text-muted);
   margin-left: 18px;
   border-left: 1px solid var(--color-border);
@@ -81,7 +82,7 @@ button[hidden],
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--font-size-control);
   color: var(--color-text-muted);
 }
 .dot {
@@ -93,10 +94,8 @@ button[hidden],
   flex-shrink: 0;
 }
 .version {
-  font:
-    9px ui-monospace,
-    monospace;
-  letter-spacing: 0.08em;
+  font: var(--font-size-caption) var(--font-family-mono);
+  letter-spacing: var(--letter-spacing-caption);
   margin-left: 20px;
 }
 .workbench {
@@ -129,8 +128,8 @@ button[hidden],
 }
 .pane-heading h1,
 .pane-heading h2 {
-  font-size: 13px;
-  font-weight: 620;
+  font-size: var(--font-size-body-large);
+  font-weight: var(--font-weight-heading);
   margin: 0;
   display: flex;
   gap: 12px;
@@ -138,14 +137,12 @@ button[hidden],
 }
 .label {
   color: var(--color-text-muted);
-  font:
-    9px ui-monospace,
-    monospace;
-  letter-spacing: 0.07em;
-  font-weight: 400;
+  font: var(--font-size-caption) var(--font-family-mono);
+  letter-spacing: var(--letter-spacing-label);
+  font-weight: var(--font-weight-regular);
 }
 .status {
-  font-size: 10px;
+  font-size: var(--font-size-meta);
   color: var(--color-text-muted);
   display: flex;
   align-items: center;
@@ -182,23 +179,21 @@ button[hidden],
   margin: auto;
 }
 .kicker {
-  font:
-    9px ui-monospace,
-    monospace;
-  letter-spacing: 0.14em;
+  font: var(--font-size-caption) var(--font-family-mono);
+  letter-spacing: var(--letter-spacing-kicker);
   color: var(--color-accent);
   margin: 0 0 15px;
 }
 .welcome h2 {
-  font-weight: 500;
-  font-size: 30px;
-  line-height: 1.14;
-  letter-spacing: -1px;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-display);
+  line-height: var(--line-height-display);
+  letter-spacing: var(--letter-spacing-tight);
   margin: 0 0 12px;
 }
 .welcome > p:not(.kicker) {
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: var(--font-size-body-large);
+  line-height: var(--line-height-intro);
   color: var(--color-text-muted);
   max-width: 380px;
   margin: 0 0 24px;
@@ -211,9 +206,7 @@ button[hidden],
   border-top: 1px solid var(--color-border);
 }
 .step-number {
-  font:
-    10px ui-monospace,
-    monospace;
+  font: var(--font-size-meta) var(--font-family-mono);
   color: var(--color-text-muted);
   width: 23px;
   height: 23px;
@@ -224,11 +217,11 @@ button[hidden],
   flex-shrink: 0;
 }
 .setup-line strong {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-semibold);
 }
 .setup-line p {
-  font-size: 11px;
+  font-size: var(--font-size-control);
   color: var(--color-text-muted);
   margin: 4px 0;
 }
@@ -238,7 +231,7 @@ button[hidden],
   white-space: nowrap;
 }
 .step-check {
-  font-size: 10px;
+  font-size: var(--font-size-meta);
   color: var(--color-text-muted);
 }
 .button {
@@ -251,8 +244,8 @@ button[hidden],
   border: 1px solid var(--color-border);
   border-radius: 5px;
   padding: 9px 12px;
-  font-size: 11px;
-  font-weight: 550;
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-emphasis);
   white-space: nowrap;
 }
 .button:hover:not(:disabled) {
@@ -271,7 +264,7 @@ button[hidden],
   background: transparent;
   padding: 5px 0;
   color: var(--color-text-muted);
-  font-size: 10px;
+  font-size: var(--font-size-meta);
 }
 .text-button:hover {
   color: var(--color-accent);
@@ -285,7 +278,7 @@ button[hidden],
   margin-bottom: 10px;
 }
 .suggestions button {
-  font-size: 10px;
+  font-size: var(--font-size-meta);
   color: var(--color-text-muted);
   background: transparent;
   border: 1px solid var(--color-border);
@@ -310,8 +303,8 @@ textarea {
   border: 0;
   background: transparent;
   padding: 13px 14px 5px;
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
   color: inherit;
 }
 textarea::placeholder {
@@ -337,7 +330,7 @@ textarea::placeholder {
   gap: 8px;
 }
 .composer-footer > span {
-  font-size: 10px;
+  font-size: var(--font-size-meta);
   color: var(--color-text-muted);
   margin-right: auto;
 }
@@ -346,7 +339,7 @@ textarea::placeholder {
   align-items: center;
   justify-content: space-between;
   margin-top: 6px;
-  font-size: 9px;
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
 }
 .model-panel {
@@ -370,10 +363,8 @@ textarea::placeholder {
 }
 .model-select label {
   display: block;
-  font:
-    8px ui-monospace,
-    monospace;
-  letter-spacing: 0.08em;
+  font: var(--font-size-micro) var(--font-family-mono);
+  letter-spacing: var(--letter-spacing-caption);
   color: var(--color-text-muted);
   margin-bottom: 6px;
 }
@@ -381,14 +372,14 @@ select {
   width: 100%;
   border: 0;
   background: transparent;
-  font-size: 13px;
-  font-weight: 550;
+  font-size: var(--font-size-body-large);
+  font-weight: var(--font-weight-emphasis);
   padding: 4px 20px 4px 0;
   color: inherit;
 }
 .model-detail {
-  font-size: 10px;
-  line-height: 1.5;
+  font-size: var(--font-size-meta);
+  line-height: var(--line-height-compact);
   color: var(--color-text-muted);
   margin: 9px 24px 0;
   min-height: 15px;
@@ -410,29 +401,21 @@ progress {
   padding-left: 20px;
 }
 .metrics dt {
-  font:
-    8px ui-monospace,
-    monospace;
-  letter-spacing: 0.06em;
+  font: var(--font-size-micro) var(--font-family-mono);
+  letter-spacing: var(--letter-spacing-micro);
   color: var(--color-text-muted);
   margin-bottom: 7px;
 }
 .metrics dd {
   margin: 0;
-  font:
-    20px ui-monospace,
-    monospace;
-  letter-spacing: -1px;
+  font: var(--font-size-metric) var(--font-family-mono);
+  letter-spacing: var(--letter-spacing-tight);
 }
 .metrics small {
   display: block;
-  font:
-    9px -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font: var(--font-size-caption) var(--font-family-sans);
   color: var(--color-text-muted);
-  letter-spacing: 0;
+  letter-spacing: var(--letter-spacing-normal);
   margin-top: 4px;
 }
 .inference-footer {
@@ -440,7 +423,7 @@ progress {
   justify-content: space-between;
   gap: 10px;
   padding: 0 24px;
-  font-size: 9px;
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
 }
 .preview-panel {
@@ -458,7 +441,7 @@ progress {
   background: transparent;
   border: 0;
   color: var(--color-text-muted);
-  font-size: 19px;
+  font-size: var(--font-size-icon);
   width: 22px;
   padding: 0;
 }
@@ -472,18 +455,12 @@ progress {
   height: 37px;
   padding: 0 23px;
   border-bottom: 1px solid var(--color-border);
-  font:
-    9px ui-monospace,
-    monospace;
+  font: var(--font-size-caption) var(--font-family-mono);
   color: var(--color-text-muted);
 }
 #preview-status {
   margin-left: auto;
-  font:
-    9px -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font: var(--font-size-caption) var(--font-family-sans);
 }
 .preview-stage {
   background: var(--color-bg-preview);
@@ -510,7 +487,7 @@ iframe {
   justify-content: space-between;
   align-items: center;
   padding: 0 24px;
-  font-size: 9px;
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   border-top: 1px solid var(--color-border);
 }
@@ -523,21 +500,19 @@ iframe {
   background: var(--color-danger-surface);
   color: var(--color-danger);
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-size-control);
   padding: 12px 24px;
   overflow-wrap: anywhere;
 }
 .message {
   padding: 14px 0;
   border-bottom: 1px solid var(--color-border);
-  font-size: 12px;
-  line-height: 1.7;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-message);
 }
 .message .speaker {
-  font:
-    9px ui-monospace,
-    monospace;
-  letter-spacing: 0.08em;
+  font: var(--font-size-caption) var(--font-family-mono);
+  letter-spacing: var(--letter-spacing-caption);
   color: var(--color-accent);
   display: block;
   margin-bottom: 5px;
@@ -552,16 +527,14 @@ iframe {
   color: var(--color-danger);
 }
 .tool-event {
-  font:
-    10px ui-monospace,
-    monospace;
+  font: var(--font-size-meta) var(--font-family-mono);
   color: var(--color-text-muted);
   padding: 9px 0;
   overflow-wrap: anywhere;
 }
 .tool-event strong {
   color: var(--color-accent);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 .tool-event details {
   margin-top: 5px;
@@ -570,7 +543,7 @@ iframe {
   white-space: pre-wrap;
   max-height: 140px;
   overflow: auto;
-  font-size: 10px;
+  font-size: var(--font-size-meta);
 }
 #console-panel {
   position: fixed;
@@ -589,9 +562,7 @@ iframe {
   background: var(--color-bg-terminal);
 }
 #diagnostics {
-  font:
-    10px ui-monospace,
-    monospace;
+  font: var(--font-size-meta) var(--font-family-mono);
   max-height: 140px;
   overflow: auto;
   padding: 12px 20px;
@@ -619,7 +590,7 @@ iframe {
     padding-top: 42px;
   }
   .welcome h2 {
-    font-size: 36px;
+    font-size: var(--font-size-display-large);
   }
   .welcome > p:not(.kicker) {
     margin-bottom: 30px;
@@ -649,7 +620,7 @@ iframe {
     padding-right: 18px;
   }
   .header-note {
-    font-size: 10px;
+    font-size: var(--font-size-meta);
   }
   .preview-tools {
     gap: 10px;
@@ -672,7 +643,7 @@ iframe {
   }
   .header-note {
     max-width: 140px;
-    font-size: 9px;
+    font-size: var(--font-size-caption);
   }
   .workbench {
     height: auto;
@@ -705,7 +676,7 @@ iframe {
     padding: 12px;
   }
   .welcome h2 {
-    font-size: 30px;
+    font-size: var(--font-size-display);
   }
   .model-detail {
     min-height: 0;
@@ -729,14 +700,14 @@ iframe {
 }
 .preview-placeholder h3 {
   color: inherit;
-  font-size: 15px;
-  font-weight: 550;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-emphasis);
   margin: 0 0 12px;
 }
 .preview-placeholder p {
   color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: var(--font-size-body-large);
+  line-height: var(--line-height-body);
   margin: 0;
 }
 
@@ -758,8 +729,8 @@ iframe {
 }
 .runtime-panels h2 {
   margin: 0 0 16px;
-  font-size: 13px;
-  font-weight: 620;
+  font-size: var(--font-size-body-large);
+  font-weight: var(--font-weight-heading);
 }
 .runtime-status {
   display: flex;
@@ -767,7 +738,7 @@ iframe {
   align-items: center;
   gap: 8px;
   min-height: 24px;
-  font-size: 11px;
+  font-size: var(--font-size-control);
 }
 .runtime-status .status {
   flex-shrink: 0;
@@ -782,13 +753,13 @@ iframe {
   justify-content: space-between;
   gap: 8px;
   min-height: 24px;
-  font-size: 11px;
-  line-height: 24px;
+  font-size: var(--font-size-control);
+  line-height: var(--line-height-status-row);
 }
 .decode-label,
 .decode-unit {
   color: var(--color-text-muted);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 .decode-value {
   display: inline-flex;
@@ -797,17 +768,17 @@ iframe {
   white-space: nowrap;
 }
 .decode-stat #speed {
-  font-size: 11px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: var(--font-numeric-data);
 }
 .decode-unit {
-  font-size: 10px;
+  font-size: var(--font-size-meta);
 }
 .runtime-footnote,
 .runtime-detail {
-  font-size: 10px;
-  line-height: 1.5;
+  font-size: var(--font-size-meta);
+  line-height: var(--line-height-compact);
   color: var(--color-text-muted);
   margin: 10px 0 0;
   overflow-wrap: anywhere;
@@ -848,13 +819,13 @@ iframe {
 }
 .agent-empty-state h2 {
   margin: 0 0 10px;
-  font-size: 15px;
-  font-weight: 550;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-emphasis);
 }
 .agent-empty-state p {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: var(--font-size-body-large);
+  line-height: var(--line-height-body);
   color: var(--color-text-muted);
 }
 
@@ -868,8 +839,8 @@ iframe {
   gap: 16px;
 }
 .brand-aide {
-  font-weight: 350;
-  letter-spacing: -0.6px;
+  font-weight: var(--font-weight-light);
+  letter-spacing: var(--letter-spacing-brand-suffix);
 }
 .runtime-footnote {
   align-items: center;
@@ -879,7 +850,7 @@ iframe {
   border-radius: 5px;
   background: transparent;
   color: var(--color-text-muted);
-  font-size: 10px;
+  font-size: var(--font-size-meta);
   padding: 5px 12px;
 }
 .console-button:hover:not(:disabled) {
@@ -891,12 +862,12 @@ iframe {
   padding: 38px 24px;
 }
 .console-empty-state h3 {
-  font-size: 15px;
-  font-weight: 550;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-emphasis);
   margin: 0 0 10px;
 }
 .console-empty-state p {
-  font-size: 13px;
+  font-size: var(--font-size-body-large);
   color: var(--color-text-muted);
   margin: 0;
 }
@@ -933,9 +904,9 @@ iframe {
   gap: 8px;
 }
 .preview-panel #refresh {
-  font-size: 16px;
+  font-size: var(--font-size-icon-small);
   width: 24px;
   height: 24px;
-  line-height: 1;
+  line-height: var(--line-height-solid);
   border-radius: 4px;
 }

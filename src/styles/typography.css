@@ -1,0 +1,55 @@
+/* Fieldwork typography. Preserve the current scale; component CSS uses these tokens.
+ * The editable project and Wanix terminal keep their independent typography.
+ */
+:root {
+  /* Font stacks: native interface text and technical output. */
+  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-mono: ui-monospace, monospace;
+
+  /* Existing size roles, including retained display/metric styles. */
+  --font-size-micro: 8px;
+  --font-size-caption: 9px;
+  --font-size-meta: 10px;
+  --font-size-control: 11px;
+  --font-size-body: 12px;
+  --font-size-body-large: 13px;
+  --font-size-heading: 15px;
+  --font-size-icon-small: 16px;
+  --font-size-icon: 19px;
+  --font-size-metric: 20px;
+  --font-size-brand: 22px;
+  --font-size-brand-symbol: 26px;
+  --font-size-display: 30px;
+  --font-size-display-large: 36px;
+
+  /* Weight roles retain the fine distinctions in the system font. */
+  --font-weight-light: 350;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-emphasis: 550;
+  --font-weight-semibold: 600;
+  --font-weight-heading: 620;
+  --font-weight-brand: 650;
+
+  /* Unitless leading except the compact, fixed-height status row. */
+  --line-height-solid: 1;
+  --line-height-display: 1.14;
+  --line-height-compact: 1.5;
+  --line-height-body: 1.6;
+  --line-height-intro: 1.65;
+  --line-height-message: 1.7;
+  --line-height-status-row: 24px;
+
+  /* Tracking for labels and the wordmark. */
+  --letter-spacing-normal: 0;
+  --letter-spacing-tight: -1px;
+  --letter-spacing-brand: -0.9px;
+  --letter-spacing-brand-suffix: -0.6px;
+  --letter-spacing-micro: 0.06em;
+  --letter-spacing-label: 0.07em;
+  --letter-spacing-caption: 0.08em;
+  --letter-spacing-wide: 0.12em;
+  --letter-spacing-kicker: 0.14em;
+
+  --font-numeric-data: tabular-nums;
+}
