@@ -4,11 +4,30 @@ import "./PreviewPanel.css";
 import { Button } from "../design-system/Button.tsx";
 import { EmptyState } from "../design-system/EmptyState.tsx";
 import { buildPreview } from "../protocol.js";
-import type { PanelProps, ProjectFile } from "../types.ts";
+import type { PanelProps, ProjectFile, SessionState } from "../types.ts";
 
 const WorkspaceEditor = lazy(() => import("./WorkspaceEditor.tsx"));
 const tabs = ["Preview", "index.html", "script.js", "style.css"] as const;
 type WorkspaceTab = (typeof tabs)[number];
+
+function getEmptyWorkspaceCopy(state: SessionState) {
+  if (state.agentStatus.kind === "error") {
+    return {
+      title: "Workspace unavailable",
+      description: "Open the console for details, then reload to try again.",
+    };
+  }
+  if (state.bootStarted) {
+    return {
+      title: "Opening your workspace…",
+      description: "Your app will appear once Linux has opened its files.",
+    };
+  }
+  return {
+    title: "Your workspace preview",
+    description: "Start Linux to open your workspace.",
+  };
+}
 
 export function PreviewPanel({ state, session }: PanelProps) {
   const [tab, setTab] = useState<WorkspaceTab>("Preview");
@@ -58,6 +77,7 @@ export function PreviewPanel({ state, session }: PanelProps) {
   }, [preview.channel]);
   const errorText =
     preview.error || (error?.channel === preview.channel ? error.text : "");
+  const emptyWorkspace = getEmptyWorkspaceCopy(state);
   return (
     <section className="preview-panel" aria-label="Workspace">
       <div className="pane-heading">
@@ -131,20 +151,10 @@ export function PreviewPanel({ state, session }: PanelProps) {
         ) : (
           <EmptyState
             headingLevel={3}
-            title={
-              state.agentStatus.kind === "error"
-                ? "Workspace unavailable"
-                : state.bootStarted
-                  ? "Opening your workspace…"
-                  : "Your workspace preview"
-            }
+            title={emptyWorkspace.title}
             role="status"
           >
-            {state.agentStatus.kind === "error"
-              ? "Open the console for details, then reload to try again."
-              : state.bootStarted
-                ? "Your app will appear once Linux has opened its files."
-                : "Start Linux to open your workspace."}
+            {emptyWorkspace.description}
           </EmptyState>
         )}
       </div>

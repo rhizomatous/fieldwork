@@ -1,107 +1,12 @@
-import { css } from "@codemirror/lang-css";
-import { html } from "@codemirror/lang-html";
-import { javascript } from "@codemirror/lang-javascript";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { EditorView } from "@codemirror/view";
-import { tags } from "@lezer/highlight";
 import CodeMirror from "@uiw/react-codemirror";
 import { useState } from "react";
 
 import { Button } from "../design-system/Button.tsx";
 import type { PanelProps, ProjectFile } from "../types.ts";
 
-import "./WorkspaceEditor.css";
+import { editorExtensions, editorTheme } from "./workspace-editor-config.ts";
 
-// CSS tokens update in place with Fieldwork's theme, preserving selection and undo.
-const theme = EditorView.theme({
-  "&": {
-    height: "100%",
-    color: "var(--color-text)",
-    backgroundColor: "var(--color-bg-surface)",
-  },
-  ".cm-scroller": {
-    fontFamily: "var(--font-family-mono)",
-    fontSize: "var(--font-size-body)",
-    lineHeight: "1.7",
-    overflow: "auto",
-  },
-  ".cm-content": { padding: "16px 0", caretColor: "var(--color-accent)" },
-  ".cm-line": { padding: "0 16px" },
-  "&.cm-focused": { outline: "none" },
-  ".cm-gutters": {
-    backgroundColor: "var(--color-bg-surface)",
-    color: "var(--color-text-muted)",
-    borderColor: "var(--color-border)",
-  },
-  ".cm-lineNumbers .cm-gutterElement": { padding: "0 10px" },
-  ".cm-activeLine, .cm-activeLineGutter": {
-    backgroundColor: "var(--color-bg-hover)",
-  },
-  // Selection is drawn behind the text; an opaque active line would hide it.
-  "&[data-has-selection=true] .cm-activeLine": {
-    backgroundColor: "transparent",
-  },
-  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--color-accent)" },
-  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-    { backgroundColor: "var(--color-code-selection)" },
-  ".cm-matchingBracket": {
-    backgroundColor: "var(--color-code-selection)",
-    outline: "1px solid var(--color-border-strong)",
-  },
-  ".cm-panels, .cm-tooltip": {
-    backgroundColor: "var(--color-bg-canvas)",
-    color: "var(--color-text)",
-    borderColor: "var(--color-border)",
-  },
-  ".cm-searchMatch": { backgroundColor: "var(--color-code-selection)" },
-});
-const highlighting = syntaxHighlighting(
-  HighlightStyle.define([
-    { tag: [tags.keyword, tags.operator], color: "var(--color-code-keyword)" },
-    {
-      tag: [tags.string, tags.regexp, tags.tagName],
-      color: "var(--color-accent)",
-    },
-    {
-      tag: [tags.number, tags.bool, tags.null],
-      color: "var(--color-code-number)",
-    },
-    {
-      tag: [
-        tags.propertyName,
-        tags.attributeName,
-        tags.function(tags.variableName),
-      ],
-      color: "var(--color-code-property)",
-    },
-    {
-      tag: tags.comment,
-      color: "var(--color-text-muted)",
-      fontStyle: "italic",
-    },
-  ]),
-);
-const languages = {
-  "index.html": html(),
-  "style.css": css(),
-  "script.js": javascript(),
-};
-const extensions = Object.fromEntries(
-  Object.entries(languages).map(([file, language]) => [
-    file,
-    [
-      language,
-      highlighting,
-      EditorView.lineWrapping,
-      EditorView.editorAttributes.of((view) => ({
-        "data-has-selection": String(
-          view.state.selection.ranges.some((range) => !range.empty),
-        ),
-      })),
-      EditorView.contentAttributes.of({ "aria-label": `${file} source code` }),
-    ],
-  ]),
-);
+import "./WorkspaceEditor.css";
 
 export default function WorkspaceEditor({
   file,
@@ -116,6 +21,25 @@ export default function WorkspaceEditor({
   const dirty = draft !== null && draft.text !== source;
   const conflict = dirty && draft.base !== source;
   const locked = state.busy || !!state.savingFile;
+
+  function getStatusText() {
+    if (error) {
+      return error;
+    }
+    if (conflict) {
+      return "File changed in the workspace. Reload to use the latest version.";
+    }
+    if (state.savingFile === file) {
+      return "Saving…";
+    }
+    if (state.busy) {
+      return "Agent is editing · read only";
+    }
+    if (dirty) {
+      return "Unsaved changes";
+    }
+    return "Saved to workspace";
+  }
 
   async function save() {
     if (!draft || !dirty || conflict || locked) {
@@ -145,8 +69,8 @@ export default function WorkspaceEditor({
     >
       <CodeMirror
         value={draft?.text ?? source}
-        theme={theme}
-        extensions={extensions[file]}
+        theme={editorTheme}
+        extensions={editorExtensions[file]}
         basicSetup={{
           foldGutter: false,
           highlightActiveLine: true,
@@ -164,18 +88,7 @@ export default function WorkspaceEditor({
         }}
       />
       <div className="editor-footer">
-        <span role="status">
-          {error ||
-            (conflict
-              ? "File changed in the workspace. Reload to use the latest version."
-              : state.savingFile === file
-                ? "Saving…"
-                : state.busy
-                  ? "Agent is editing · read only"
-                  : dirty
-                    ? "Unsaved changes"
-                    : "Saved to workspace")}
-        </span>
+        <span role="status">{getStatusText()}</span>
         {draft && (
           <Button
             variant="ghost"

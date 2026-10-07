@@ -19,15 +19,23 @@ export function PromptComposer({ state, session }: PanelProps) {
   const [prompt, setPrompt] = useState("");
   const canSend =
     state.linuxReady && state.modelReady && !state.busy && !state.savingFile;
-  const hint = state.savingFile
-    ? "Saving workspace…"
-    : state.resettingChat
-      ? "Resetting conversation…"
-      : state.busy
-        ? "Pi is working inside Linux…"
-        : canSend
-          ? "Enter to send · Shift\u00a0+\u00a0Enter for a new line"
-          : "Start Linux and load a model to begin";
+  
+  function getHint() {
+    if (state.savingFile) {
+      return "Saving workspace…";
+    }
+    if (state.resettingChat) {
+      return "Resetting conversation…";
+    }
+    if (state.busy) {
+      return "Pi is working inside Linux…";
+    }
+    if (canSend) {
+      return "Enter to send · Shift\u00a0+\u00a0Enter for a new line";
+    }
+    return "Start Linux and load a model to begin";
+  }
+
   return (
     <div className="prompt-area">
       <ChatBox
@@ -40,7 +48,7 @@ export function PromptComposer({ state, session }: PanelProps) {
         canSend={canSend}
         showStop={state.busy && !state.resettingChat}
         onStop={() => session.stop()}
-        hint={hint}
+        hint={getHint()}
         suggestions={state.messages.length === 0 ? suggestions : []}
         label="Ask the agent to change the app"
       />

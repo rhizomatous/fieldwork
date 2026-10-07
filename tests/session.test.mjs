@@ -67,7 +67,7 @@ test("a prompt routes inference and edits while metrics leave the preview files 
   await t.worker.onmessage({ data: { type: "loaded" } });
 
   assert.match(t.session.getSnapshot().loadDetail, /8,192-token context/);
-  
+
   await t.session.send("Change the title");
 
   assert.deepEqual(t.commands, [["prompt", "Change the title"]]);
