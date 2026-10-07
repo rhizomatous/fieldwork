@@ -1,7 +1,7 @@
 import { INFERENCE_LIMITS, models } from "../shared/inference-config.mjs";
 
 import { gpuSupportError } from "./gpu-support.js";
-import { buildPreview } from "./protocol.js";
+import { buildPreview } from "./preview.ts";
 import type {
   ProjectFile,
   Runtime,

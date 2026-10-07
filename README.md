@@ -55,7 +55,8 @@ Fieldwork uses React with Vite. `index.html` is the entry point; `src/App.tsx` c
 - `guest/provider.mjs` is a real Pi custom provider. It writes the model context to `/bridge/request.json` and consumes the corresponding response. Pi validates and executes its normal tools and continues the loop inside Linux.
 - `src/runtime.js` boots Wanix, mounts the persistent project, and transports files and events. No shell tools execute on the host machine.
 - `src/inference.worker.js` owns the WebLLM engine and GPU inference. Structured JSON selects one Pi tool or a final response. It does not execute tools.
-- `src/protocol.js` translates message formats and assembles the preview from actual workspace files.
+- `src/protocol.js` builds inference requests and validates model actions.
+- `src/preview.ts` assembles the preview from actual workspace files.
 - The preview iframe runs with `allow-scripts` and without `allow-same-origin`. Its CSP blocks network requests. The initial project supports `index.html`, `style.css`, and `script.js`, not arbitrary assets, npm dependencies, or ES module graphs.
 
 No guest network device is configured. Model downloads are the main external requests after loading the static app. Full offline reload support is not implemented: caching weights alone does not cache every application asset.

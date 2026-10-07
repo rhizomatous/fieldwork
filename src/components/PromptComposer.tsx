@@ -19,7 +19,7 @@ export function PromptComposer({ state, session }: PanelProps) {
   const [prompt, setPrompt] = useState("");
   const canSend =
     state.linuxReady && state.modelReady && !state.busy && !state.savingFile;
-  
+
   function getHint() {
     if (state.savingFile) {
       return "Saving workspace…";

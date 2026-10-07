@@ -2,7 +2,18 @@ import { compactContext, editFeedback } from "./inference-context.js";
 import { PROJECT_FILES } from "./project-files.js";
 
 export function inferenceRequest(context) {
-  const transcript = context.messages || [];
+  const tools = (context.tools || []).filter((tool) =>
+    ["read", "edit", "write", "bash"].includes(tool.name),
+  );
+  const inspection = inspectCurrentTurn(context.messages || []);
+  const schema = buildActionSchema(tools, inspection);
+  const system = buildSystemPrompt(context.systemPrompt || "", tools);
+  const transcript = compactContext(editFeedback(context));
+  const messages = translateTranscript(transcript, system);
+  return { messages, schema, tools };
+}
+
+function inspectCurrentTurn(transcript) {
   const lastUser = transcript.findLastIndex(
     (message) => message.role === "user",
   );
@@ -35,9 +46,15 @@ export function inferenceRequest(context) {
       }
     }
   }
-  const tools = (context.tools || []).filter((tool) =>
-    ["read", "edit", "write", "bash"].includes(tool.name),
-  );
+  return {
+    unread: PROJECT_FILES.filter((file) => !inspected.has(file)),
+    hasToolError: turn.some(
+      (message) => message.role === "toolResult" && message.isError,
+    ),
+  };
+}
+
+function buildActionSchema(tools, { unread, hasToolError }) {
   const schema = {
     anyOf: [
       {
@@ -61,14 +78,9 @@ export function inferenceRequest(context) {
 
   // This workspace is three small, interdependent files. Inspect all of them
   // before changing any, so the model has the markup, behavior, and styling.
-  // A failed read still permits an explanation rather than forcing a loop.
-  const unread = PROJECT_FILES.filter((file) => !inspected.has(file));
-  const readFailed = turn.some(
-    (message) => message.role === "toolResult" && message.isError,
-  );
   if (
     unread.length &&
-    !readFailed &&
+    !hasToolError &&
     tools.some((tool) => tool.name === "read")
   ) {
     schema.anyOf = schema.anyOf.filter(
@@ -83,7 +95,11 @@ export function inferenceRequest(context) {
     };
   }
 
-  const system = `${context.systemPrompt || ""}
+  return schema;
+}
+
+function buildSystemPrompt(systemPrompt, tools) {
+  return `${systemPrompt}
 You control coding tools through JSON. Return exactly one JSON object per response.
 First inspect all three app files. Use edit for small, targeted changes to existing files. Copy oldText from the actual file: use the shortest unique anchor, preserving whitespace. Reserve write for creating new files or an explicitly requested full replacement.
 Complete the ENTIRE requested feature in this turn, including markup and behavior. For a new UI control, add its own event handler; keep existing controls and their handlers working. Preserve unrelated content, layout, and styles.
@@ -94,9 +110,12 @@ Edit: {"type":"tool","name":"edit","arguments":{"path":"index.html","edits":[{"o
 Finish: {"type":"message","text":"What you completed"}
 After each tool call you receive its result. A failed exact-match edit applies NONE of its replacements. Use the actual current file, not the failed proposal, for the next edit.
 Available tools: ${JSON.stringify(tools)}`;
+}
+
+function translateTranscript(transcript, system) {
   const messages = [{ role: "system", content: system }];
 
-  for (const message of compactContext(editFeedback(context))) {
+  for (const message of transcript) {
     let content;
 
     if (typeof message.content === "string") {
@@ -136,7 +155,7 @@ Available tools: ${JSON.stringify(tools)}`;
     }
   }
 
-  return { messages, schema, tools };
+  return messages;
 }
 
 export function parseAction(text, tools) {
@@ -163,43 +182,4 @@ export function parseAction(text, tools) {
   }
 
   return action;
-}
-
-export function buildPreview(files, channel = "") {
-  for (const file of PROJECT_FILES) {
-    if (typeof files[file] !== "string") {
-      throw new Error(`Missing ${file}`);
-    }
-  }
-
-  // Only the initial three-file format is supported. JSON encoding prevents an
-  // app script containing </script> from breaking out of its injected wrapper.
-  const css = JSON.stringify(files["style.css"]).replace(/</g, "\\u003c");
-  const js = JSON.stringify(files["script.js"]).replace(/</g, "\\u003c");
-  const token = JSON.stringify(channel).replace(/</g, "\\u003c");
-  const bootstrap = `<script>const channel=${token};addEventListener('error',e=>parent.postMessage({channel,type:'preview-error',message:e.message},'*'));addEventListener('unhandledrejection',e=>parent.postMessage({channel,type:'preview-error',message:String(e.reason)},'*'));</script>`;
-  const style = `<script>{const s=document.createElement('style');s.textContent=${css};document.head.append(s)}</script>`;
-  const script = `<script>{const s=document.createElement('script');s.textContent=${js};document.body.append(s)}</script>`;
-
-  let html = files["index.html"];
-  html = html.replace(
-    /<link\b[^>]*href\s*=\s*["'](?:\.\/)?style\.css["'][^>]*>/gi,
-    "",
-  );
-  html = html.replace(
-    /<script\b[^>]*src\s*=\s*["'](?:\.\/)?script\.js["'][^>]*>\s*<\/script\s*>/gi,
-    "",
-  );
-
-  // This demo has no external dependencies. Block network and nested frames.
-  const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'">`;
-  const head = policy + bootstrap + style;
-
-  html = /<head\b[^>]*>/i.test(html)
-    ? html.replace(/<head\b[^>]*>/i, (match) => match + head)
-    : head + html;
-
-  return /<\/body>/i.test(html)
-    ? html.replace(/<\/body>/i, script + "</body>")
-    : html + script;
 }
