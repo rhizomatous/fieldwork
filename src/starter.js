@@ -9,13 +9,22 @@ export const starter = {
 </head>
 <body>
   <main>
-    <p class="eyebrow">A SMALL SPACE FOR GOOD IDEAS</p>
-    <div class="flower" aria-hidden="true">✳</div>
+    <svg class="flower" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M50 78C28 62 28 38 50 14C72 38 72 62 50 78Z"/>
+      <path d="M50 78C25 78 12 58 14 34C30 37 42 47 50 62C58 47 70 37 86 34C88 58 75 78 50 78Z"/>
+      <path d="M50 78C27 88 9 75 5 55C14 54 24 57 31 62M50 78C73 88 91 75 95 55C86 54 76 57 69 62"/>
+    </svg>
     <h1>Make room<br>for little things.</h1>
     <p class="intro">A walk without a destination. A really good song. Something you made just because.</p>
-    <button id="save">Save a little joy <span>↗</span></button>
-    <p id="count" aria-live="polite">No rush. Start with one.</p>
-    <footer>YOUR NEXT IDEA STARTS HERE <span>01 / ∞</span></footer>
+    <form id="joy-form">
+      <label for="joy">Save a little joy</label>
+      <div class="joy-input">
+        <input id="joy" name="joy" placeholder="Something that made you smile..." maxlength="200" required>
+        <button type="submit">Save <span aria-hidden="true">↗</span></button>
+      </div>
+    </form>
+    <p id="count" role="status">No rush. Start with one.</p>
+    <ul id="joys" aria-label="Saved little joys"></ul>
   </main>
   <script src="script.js"></script>
 </body>
@@ -26,8 +35,8 @@ export const starter = {
 
 body {
   margin: 0;
-  background: #f2eee5;
-  color: #303b2c;
+  background: oklch(96% .07 100);
+  color: oklch(30% .09 265);
   font-family: system-ui, sans-serif;
 }
 
@@ -37,16 +46,11 @@ main {
   padding: 56px 42px 28px;
 }
 
-.eyebrow {
-  font-size: 10px;
-  letter-spacing: .18em;
-  font-weight: 650;
-}
-
 .flower {
-  color: #bc563c;
-  font-size: 100px;
-  line-height: 1;
+  display: block;
+  width: 100px;
+  height: 100px;
+  color: oklch(49% .21 268);
   margin-top: 50px;
 }
 
@@ -63,48 +67,82 @@ h1 {
   max-width: 340px;
   font-size: 15px;
   line-height: 1.7;
-  color: #686e5e;
+  color: oklch(43% .065 265);
+}
+
+form {
+  margin-top: 30px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.joy-input {
+  display: flex;
+  border: 1px solid oklch(40% .18 268);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.joy-input:focus-within {
+  outline: 2px solid oklch(49% .21 268);
+  outline-offset: 3px;
+}
+
+input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 15px 12px;
+  background: oklch(98% .035 100);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+input::placeholder {
+  color: oklch(48% .055 265);
 }
 
 button {
-  display: flex;
-  gap: 38px;
-  align-items: center;
+  flex-shrink: 0;
   border: 0;
-  border-radius: 6px;
-  padding: 15px 20px;
-  margin-top: 30px;
-  background: #364631;
-  color: #f5f2e9;
+  padding: 15px 18px;
+  background: oklch(40% .18 268);
+  color: oklch(98% .035 100);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
 }
 
 button:hover {
-  background: #4b6143;
+  background: oklch(34% .16 268);
 }
 
 button:focus-visible {
-  outline: 3px solid #bc563c;
-  outline-offset: 4px;
+  outline: 3px solid oklch(49% .21 268);
+  outline-offset: -4px;
 }
 
 #count {
-  color: #74796c;
+  color: oklch(48% .055 265);
   font-size: 12px;
   min-height: 20px;
 }
 
-footer {
-  display: flex;
-  justify-content: space-between;
-  border-top: 1px solid #d8d9cc;
-  padding-top: 20px;
-  margin-top: 62px;
-  font-size: 9px;
-  letter-spacing: .12em;
-  color: #777e6e;
+#joys {
+  padding-left: 20px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+#joys li {
+  padding: 4px 0 4px 4px;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 400px) {
@@ -116,19 +154,31 @@ footer {
   }
 }
 `,
-  "script.js": `const saveButton = document.querySelector('#save');
+  "script.js": `const form = document.querySelector('#joy-form');
+const joyInput = document.querySelector('#joy');
+const joyList = document.querySelector('#joys');
 const countLabel = document.querySelector('#count');
 
-let joys = 0;
+form.addEventListener('submit', (event) => {
+  event.preventDefault();
 
-saveButton.addEventListener('click', () => {
-  joys += 1;
+  const joy = joyInput.value.trim();
+  if (!joy) {
+    joyInput.focus();
+    return;
+  }
 
-  const message = joys === 1
+  const item = document.createElement('li');
+  item.textContent = joy;
+  joyList.append(item);
+
+  const count = joyList.children.length;
+  countLabel.textContent = count === 1
     ? 'One little joy, saved.'
-    : \`\${joys} little joys, saved.\`;
+    : \`\${count} little joys, saved.\`;
 
-  countLabel.textContent = message;
+  form.reset();
+  joyInput.focus();
 });
 `,
 };

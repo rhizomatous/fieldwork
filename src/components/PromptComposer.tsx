@@ -7,11 +7,11 @@ import type { PanelProps } from "../types.ts";
 const suggestions: [string, string][] = [
   [
     "A warmer palette",
-    "Change the page to a warm terracotta color palette. Keep the layout and behavior.",
+    "Change the page to a warm terracotta & cream color palette. Keep the layout and behavior.",
   ],
   [
     "Add a reset button",
-    "Add a reset button that resets the little joys counter to zero.",
+    "Add a reset button that resets the little joys list to zero.",
   ],
 ];
 

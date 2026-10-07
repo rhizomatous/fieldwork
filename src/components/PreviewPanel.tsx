@@ -125,7 +125,7 @@ export function PreviewPanel({ state, session }: PanelProps) {
             ref={frame}
             id="preview"
             title="Live app preview"
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-forms"
             srcDoc={preview.html}
           />
         ) : (
