@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 
-import { MODEL } from "../../shared/inference-config.mjs";
+import { MODEL } from "../../shared/inference-config.ts";
 import { Button } from "../design-system/Button.tsx";
 
 import "./AboutDialog.css";

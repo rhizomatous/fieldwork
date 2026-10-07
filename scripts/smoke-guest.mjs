@@ -6,7 +6,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { starter } from "../src/starter.js";
+import {
+  inferenceRequestSchema,
+  parseAgentEvent,
+} from "../shared/contracts.ts";
+import { starter } from "../src/starter.ts";
 
 const root = await fs.mkdtemp(path.join(os.tmpdir(), "fieldwork-smoke-"));
 const bridge = path.join(root, "bridge"),
@@ -40,19 +44,31 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function json(file) {
   try {
-    return JSON.parse(await fs.readFile(path.join(bridge, file), "utf8"));
-  } catch {
-    return null;
+    const value = JSON.parse(
+      await fs.readFile(path.join(bridge, file), "utf8"),
+    );
+    return file === "request.json"
+      ? inferenceRequestSchema.parse(value)
+      : value;
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return null;
+    }
+    throw error;
   }
 }
 
 async function events() {
-  return Promise.all(
+  const values = await Promise.all(
     (await fs.readdir(bridge))
       .filter((name) => /^event-\d+\.json$/.test(name))
       .toSorted()
       .map(json),
   );
+  for (const event of values) {
+    parseAgentEvent(event);
+  }
+  return values;
 }
 
 async function until(fn, description) {
@@ -85,10 +101,13 @@ async function command(type, message) {
 }
 
 async function respond(request, action) {
-  await fs.writeFile(
-    path.join(bridge, `response-${request.id}.json`),
-    JSON.stringify({ id: request.id, action }),
-  );
+  await writeResponse(request.id, { id: request.id, action });
+}
+
+async function writeResponse(id, value) {
+  const file = path.join(bridge, `response-${id}.json`);
+  await fs.writeFile(`${file}.tmp`, JSON.stringify(value));
+  await fs.rename(`${file}.tmp`, file);
 }
 
 try {
@@ -188,6 +207,47 @@ try {
   );
 
   console.log("PASS: cancellation interrupts a pending inference request");
+
+  const invalidCommandId = await command("prompt");
+  await until(
+    async () =>
+      (await events()).find(
+        (event) =>
+          event.type === "response" &&
+          event.id === invalidCommandId &&
+          event.success === false,
+      ),
+    "invalid command rejection",
+  );
+  console.log("PASS: malformed commands receive correlated errors");
+
+  await command("prompt", "Make a change.");
+  const pendingRequest = await until(async () => {
+    const value = await json("request.json");
+    return value?.id !== freshRequest.id && value;
+  }, "response validation request");
+  await writeResponse(pendingRequest.id, {
+    id: "wrong-request",
+    action: {
+      type: "tool",
+      name: "write",
+      arguments: { path: "index.html", content: "Must not execute" },
+    },
+  });
+  await until(
+    async () =>
+      (await events()).some(
+        (event) =>
+          event.type === "message_end" &&
+          event.message?.errorMessage?.includes("does not match"),
+      ),
+    "mismatched response rejection",
+  );
+  assert.match(
+    await fs.readFile(path.join(project, "index.html"), "utf8"),
+    /Bridge verified/,
+  );
+  console.log("PASS: mismatched inference responses cannot execute tools");
 } finally {
   execFileSync("docker", ["rm", "-f", container], { stdio: "ignore" });
   await fs.rm(root, { recursive: true, force: true });

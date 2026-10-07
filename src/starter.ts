@@ -1,4 +1,6 @@
-export const starter = {
+import type { ProjectFiles } from "./types.ts";
+
+export const starter: ProjectFiles = {
   "index.html": `<!doctype html>
 <html lang="en">
 <head>

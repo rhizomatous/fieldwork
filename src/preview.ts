@@ -1,4 +1,4 @@
-import { PROJECT_FILES } from "./project-files.js";
+import { PROJECT_FILES } from "./project-files.ts";
 import type { ProjectFiles } from "./types.ts";
 
 export function buildPreview(files: ProjectFiles, channel = ""): string {

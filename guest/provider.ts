@@ -2,13 +2,33 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 
 import { createAssistantMessageEventStream } from "@mariozechner/pi-ai";
+import type {
+  AssistantMessage,
+  ToolCall,
+  StreamFunction,
+} from "@mariozechner/pi-ai";
+import type { ProviderConfig } from "@mariozechner/pi-coding-agent";
 
-import { INFERENCE_LIMITS } from "../shared/inference-config.mjs";
+import {
+  inferenceRequestSchema,
+  parseInferenceResult,
+} from "../shared/contracts.ts";
+import type { InferenceResult } from "../shared/contracts.ts";
+import { errorMessage, isMissingFile } from "../shared/errors.ts";
+import { INFERENCE_LIMITS } from "../shared/inference-config.ts";
+
+export type BrowserProviderConfig = Required<
+  Pick<ProviderConfig, "baseUrl" | "api" | "models">
+> & { streamSimple: StreamFunction };
+interface ProviderHost {
+  on(name: "agent_start", handler: () => void): void;
+  registerProvider(name: "browser", provider: BrowserProviderConfig): void;
+}
 
 const dir = process.env.BRIDGE_DIR || "/bridge";
-const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export default function browserProvider(pi) {
+export default function browserProvider(pi: ProviderHost) {
   let rounds = 0;
 
   pi.on("agent_start", () => {
@@ -17,7 +37,6 @@ export default function browserProvider(pi) {
 
   pi.registerProvider("browser", {
     baseUrl: "http://browser.invalid",
-    apiKey: "local-only",
     api: "browser-local",
     models: [
       {
@@ -34,7 +53,7 @@ export default function browserProvider(pi) {
       const stream = createAssistantMessageEventStream();
       const id = randomUUID();
       const responsePath = `${dir}/response-${id}.json`;
-      const output = {
+      const output: AssistantMessage = {
         role: "assistant",
         content: [],
         api: model.api,
@@ -66,12 +85,12 @@ export default function browserProvider(pi) {
           stream.push({ type: "start", partial: output });
           fs.writeFileSync(
             `${dir}/request.tmp`,
-            JSON.stringify({ id, context }),
+            JSON.stringify(inferenceRequestSchema.parse({ id, context })),
           );
           fs.renameSync(`${dir}/request.tmp`, `${dir}/request.json`);
 
           const deadline = Date.now() + 240_000;
-          let response;
+          let response: InferenceResult | undefined;
 
           while (Date.now() < deadline) {
             if (options?.signal?.aborted) {
@@ -79,10 +98,13 @@ export default function browserProvider(pi) {
             }
 
             try {
-              response = JSON.parse(fs.readFileSync(responsePath, "utf8"));
+              response = parseInferenceResult(
+                JSON.parse(fs.readFileSync(responsePath, "utf8")),
+                id,
+              );
               break;
             } catch (error) {
-              if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) {
+              if (!isMissingFile(error)) {
                 throw error;
               }
             }
@@ -94,7 +116,7 @@ export default function browserProvider(pi) {
             throw new Error("Local inference timed out");
           }
 
-          if (response.error) {
+          if (response.error !== undefined) {
             throw new Error(response.error);
           }
 
@@ -109,7 +131,7 @@ export default function browserProvider(pi) {
               throw new Error("Unknown tool requested");
             }
 
-            const block = {
+            const block: ToolCall = {
               type: "toolCall",
               id,
               name: action.name,
@@ -164,12 +186,12 @@ export default function browserProvider(pi) {
           }
           stream.push({
             type: "done",
-            reason: output.stopReason,
+            reason: action.type === "tool" ? "toolUse" : "stop",
             message: output,
           });
         } catch (error) {
           output.stopReason = options?.signal?.aborted ? "aborted" : "error";
-          output.errorMessage = error.message;
+          output.errorMessage = errorMessage(error);
 
           stream.push({
             type: "error",

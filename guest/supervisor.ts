@@ -1,5 +1,13 @@
 import fs from "node:fs";
 
+import type { AgentEvent as PiAgentEvent } from "@mariozechner/pi-agent-core";
+
+import { commandSchema, requestIdSchema } from "../shared/contracts.ts";
+import type { AgentEvent } from "../shared/contracts.ts";
+import { errorMessage, isMissingFile } from "../shared/errors.ts";
+
+import type { BrowserProviderConfig } from "./provider.ts";
+
 const dir = process.env.BRIDGE_DIR || "/bridge";
 const cwd = process.env.PROJECT_DIR || "/project";
 
@@ -7,7 +15,7 @@ fs.mkdirSync(dir, { recursive: true });
 
 let sequence = 0;
 
-function emit(event) {
+function emit(event: AgentEvent | PiAgentEvent) {
   const name = `${dir}/event-${String(++sequence).padStart(8, "0")}.json`;
   fs.writeFileSync(`${name}.tmp`, JSON.stringify(event));
   fs.renameSync(`${name}.tmp`, name);
@@ -22,15 +30,15 @@ try {
   const [{ Agent }, { default: browserProvider }, read, write, edit, bash] =
     await Promise.all([
       import("@mariozechner/pi-agent-core"),
-      import("./provider.mjs"),
-      import("./node_modules/@mariozechner/pi-coding-agent/dist/core/tools/read.js"),
-      import("./node_modules/@mariozechner/pi-coding-agent/dist/core/tools/write.js"),
-      import("./node_modules/@mariozechner/pi-coding-agent/dist/core/tools/edit.js"),
-      import("./node_modules/@mariozechner/pi-coding-agent/dist/core/tools/bash.js"),
+      import("./provider.ts"),
+      import("../.cache/pi-runtime/node_modules/@mariozechner/pi-coding-agent/dist/core/tools/read.js"),
+      import("../.cache/pi-runtime/node_modules/@mariozechner/pi-coding-agent/dist/core/tools/write.js"),
+      import("../.cache/pi-runtime/node_modules/@mariozechner/pi-coding-agent/dist/core/tools/edit.js"),
+      import("../.cache/pi-runtime/node_modules/@mariozechner/pi-coding-agent/dist/core/tools/bash.js"),
     ]);
 
-  let provider;
-  const hooks = new Map();
+  let provider: BrowserProviderConfig | undefined;
+  const hooks = new Map<string, () => void>();
 
   browserProvider({
     on: (name, fn) => hooks.set(name, fn),
@@ -38,6 +46,10 @@ try {
       provider = config;
     },
   });
+
+  if (!provider) {
+    throw new Error("Browser provider was not registered");
+  }
 
   const model = {
     ...provider.models[0],
@@ -63,22 +75,33 @@ try {
   });
 
   agent.subscribe((event) => {
-    hooks.get(event.type)?.(event);
+    hooks.get(event.type)?.();
     emit(event);
   });
 
   emit({
     type: "ready",
-    message: "Pi agent core and coding tools are running inside Linux",
   });
 
   let lastCommand = "";
+  let lastCommandText = "";
 
   setInterval(() => {
+    let commandId: string | undefined;
     try {
-      const command = JSON.parse(
-        fs.readFileSync(`${dir}/command.json`, "utf8"),
+      const text = fs.readFileSync(`${dir}/command.json`, "utf8");
+      if (text === lastCommandText) {
+        return;
+      }
+      lastCommandText = text;
+      const value: unknown = JSON.parse(text);
+      const id = requestIdSchema.safeParse(
+        typeof value === "object" && value !== null && "id" in value
+          ? value.id
+          : undefined,
       );
+      commandId = id.success ? id.data : undefined;
+      const command = commandSchema.parse(value);
 
       if (!command.id || command.id === lastCommand) {
         return;
@@ -98,7 +121,6 @@ try {
         emit({
           type: "response",
           id: command.id,
-          command: "new_session",
           success: true,
         });
       } else if (command.type === "prompt") {
@@ -106,22 +128,34 @@ try {
           throw new Error("The agent is already working");
         }
 
-        agent
-          .prompt(command.message)
-          .catch((error) =>
-            emit({ type: "response", success: false, error: error.message }),
-          );
+        agent.prompt(command.message).catch((error) =>
+          emit({
+            type: "response",
+            id: command.id,
+            success: false,
+            error: errorMessage(error),
+          }),
+        );
       } else {
         throw new Error("Unsupported bridge command");
       }
     } catch (error) {
-      if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) {
-        emit({ type: "response", success: false, error: error.message });
+      if (!isMissingFile(error)) {
+        emit({
+          type: "response",
+          id: commandId,
+          success: false,
+          error: errorMessage(error),
+        });
       }
     }
   }, 150);
 } catch (error) {
-  emit({ type: "fatal", message: error.stack || error.message });
+  emit({
+    type: "fatal",
+    message:
+      error instanceof Error ? error.stack || error.message : String(error),
+  });
 
   process.exitCode = 1;
 }

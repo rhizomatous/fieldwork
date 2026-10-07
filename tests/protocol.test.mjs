@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { inferenceRequest, parseAction } from "../src/protocol.js";
+import { inferenceRequest, parseAction } from "../src/protocol.ts";
 
 const tools = [
   {

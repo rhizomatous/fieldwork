@@ -1,5 +1,5 @@
 // Matches the device requirement in the pinned WebLLM 0.2.85 runtime.
-export function gpuSupportError(adapter) {
+export function gpuSupportError(adapter: GPUAdapter | null | undefined) {
   if (!adapter) {
     return "WebGPU is unavailable. Open in a desktop browser with hardware acceleration enabled.";
   }

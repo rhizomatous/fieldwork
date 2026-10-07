@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createSession } from "../src/session.ts";
-import { starter } from "../src/starter.js";
+import { starter } from "../src/starter.ts";
 
 function setup(
   gpu = {
@@ -74,12 +74,14 @@ test("a prompt routes inference and edits while metrics leave the preview files 
 
   await t.session.send("Change the title");
 
-  assert.deepEqual(t.commands, [["prompt", "Change the title"]]);
+  assert.deepEqual(t.commands, [
+    [{ type: "prompt", message: "Change the title" }],
+  ]);
 
   t.emit("event", { type: "agent_start" });
 
   const files = t.session.getSnapshot().files;
-  t.emit("inference", { id: "request-1", context: {} });
+  t.emit("inference", { id: "request-1", context: { messages: [] } });
 
   assert.equal(t.workerMessages.at(-1).type, "generate");
 
@@ -90,18 +92,32 @@ test("a prompt routes inference and edits while metrics leave the preview files 
   assert.equal(t.session.getSnapshot().files, files);
 
   await t.worker.onmessage({
-    data: { type: "result", id: "stale", text: "ignore" },
+    data: {
+      type: "result",
+      id: "stale",
+      action: { type: "message", text: "ignore" },
+    },
   });
 
   assert.equal(t.responses.length, 0);
 
   await t.worker.onmessage({
-    data: { type: "result", id: "request-1", text: "action" },
+    data: {
+      type: "result",
+      id: "request-1",
+      action: { type: "message", text: "action" },
+    },
   });
 
   assert.equal(t.responses[0].id, "request-1");
 
-  await t.worker.onmessage({ data: { type: "result", id: "request-1" } });
+  await t.worker.onmessage({
+    data: {
+      type: "result",
+      id: "request-1",
+      action: { type: "message", text: "Done" },
+    },
+  });
   assert.equal(t.responses.length, 1, "duplicate results are ignored");
 
   t.emit("snapshot", { ...starter, "index.html": "<h1>Updated</h1>" });
@@ -130,7 +146,7 @@ test("stopping cancels both inference and the guest agent", async () => {
   await t.session.stop();
 
   assert.deepEqual(t.workerMessages, [{ type: "cancel" }]);
-  assert.deepEqual(t.commands, [["abort"]]);
+  assert.deepEqual(t.commands, [[{ type: "abort" }]]);
 
   t.emit("event", { type: "agent_end" });
 
@@ -147,7 +163,7 @@ test("worker failure returns an error to a pending guest request and unlocks the
 
   await t.session.send("Change the title");
   t.emit("event", { type: "agent_start" });
-  t.emit("inference", { id: "failed" });
+  t.emit("inference", { id: "failed", context: { messages: [] } });
   t.worker.onerror({ message: "GPU lost" });
 
   assert.deepEqual(t.responses, [{ id: "failed", error: "GPU lost" }]);
@@ -182,7 +198,7 @@ test("reset chat clears the conversation but preserves workspace files and loade
 
   await t.session.resetChat();
 
-  assert.deepEqual(t.commands.at(-1), ["new_session"]);
+  assert.deepEqual(t.commands.at(-1), [{ type: "new_session" }]);
   assert.deepEqual(t.session.getSnapshot().messages, []);
   assert.equal(t.session.getSnapshot().files, files);
   assert.equal(t.session.getSnapshot().modelReady, true);
@@ -356,10 +372,16 @@ test("model loading can retry and generation returns to ready without ending the
   await t.session.send("Change the title");
   assert.equal(t.session.getSnapshot().operation.type, "prompting");
   t.emit("event", { type: "agent_start" });
-  t.emit("inference", { id: "one", context: {} });
+  t.emit("inference", { id: "one", context: { messages: [] } });
   assert.equal(t.session.getSnapshot().modelPhase, "generating");
   assert.equal(t.session.getSnapshot().canSend, false);
-  await t.worker.onmessage({ data: { type: "result", id: "one" } });
+  await t.worker.onmessage({
+    data: {
+      type: "result",
+      id: "one",
+      action: { type: "message", text: "Done" },
+    },
+  });
   assert.equal(t.session.getSnapshot().modelPhase, "ready");
   assert.equal(t.session.getSnapshot().busy, true);
   assert.equal(t.session.getSnapshot().canStop, true);
@@ -444,4 +466,25 @@ test("editor rejects stale drafts and retains workspace after failed writes", as
     t.session.saveFile("index.html", "new", starter["index.html"]),
     /current operation/,
   );
+});
+
+test("malformed worker results fail the pending request instead of reaching the guest", async () => {
+  const t = setup();
+  await t.session.boot({});
+  t.emit("event", { type: "ready" });
+  t.session.load();
+  await t.worker.onmessage({ data: { type: "loaded" } });
+  t.emit("inference", { id: "one", context: { messages: [] } });
+  await t.worker.onmessage({
+    data: {
+      type: "result",
+      id: "one",
+      action: { type: "tool", name: "write", arguments: [] },
+    },
+  });
+  assert.equal(t.responses.length, 1);
+  assert.equal(t.responses[0].id, "one");
+  assert.match(t.responses[0].error, /Invalid inference worker message/);
+  assert.equal(t.responses[0].action, undefined);
+  assert.equal(t.session.getSnapshot().modelPhase, "worker-error");
 });

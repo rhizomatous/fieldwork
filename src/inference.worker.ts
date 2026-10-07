@@ -1,15 +1,29 @@
+import type { MLCEngine } from "@mlc-ai/web-llm";
 import { CreateMLCEngine } from "@mlc-ai/web-llm";
 
-import { INFERENCE_LIMITS } from "../shared/inference-config.mjs";
+import { workerRequestSchema } from "../shared/contracts.ts";
+import type { WorkerMessage, WorkerRequest } from "../shared/contracts.ts";
+import { errorMessage } from "../shared/errors.ts";
+import { INFERENCE_LIMITS } from "../shared/inference-config.ts";
 
-import { gpuSupportError } from "./gpu-support.js";
-import { inferenceRequest, parseAction } from "./protocol.js";
+import { gpuSupportError } from "./gpu-support.ts";
+import { inferenceRequest, parseAction } from "./protocol.ts";
 
-let engine;
+let engine: MLCEngine | undefined;
 let cancelled = false;
 let generating = false;
-const send = (type, data = {}) => postMessage({ type, ...data });
-self.onmessage = async ({ data }) => {
+const send = (message: WorkerMessage) => postMessage(message);
+self.onmessage = ({ data: value }: MessageEvent<unknown>) => {
+  const parsed = workerRequestSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid inference worker request: ${parsed.error.message}`,
+    );
+  }
+  void handleRequest(parsed.data);
+};
+
+async function handleRequest(data: WorkerRequest) {
   if (data.type === "cancel") {
     cancelled = true;
     await engine?.interruptGenerate();
@@ -27,13 +41,20 @@ self.onmessage = async ({ data }) => {
       await engine?.unload();
       engine = await CreateMLCEngine(
         data.model,
-        { initProgressCallback: (progress) => send("progress", progress) },
+        {
+          initProgressCallback: (progress) =>
+            send({
+              type: "progress",
+              progress: progress.progress,
+              text: progress.text,
+            }),
+        },
         { context_window_size: INFERENCE_LIMITS.contextTokens },
       );
-      send("loaded", { model: data.model });
+      send({ type: "loaded" });
     } catch (error) {
       engine = undefined;
-      send("load-error", { error: error.message });
+      send({ type: "load-error", error: errorMessage(error) });
     }
     return;
   }
@@ -41,7 +62,7 @@ self.onmessage = async ({ data }) => {
     return;
   }
   if (!engine || generating) {
-    send("result", { id: data.id, error: "The model is not ready." });
+    send({ type: "result", id: data.id, error: "The model is not ready." });
     return;
   }
   generating = true;
@@ -75,11 +96,11 @@ self.onmessage = async ({ data }) => {
       if (chunk.usage) {
         usage = chunk.usage;
       }
-      send("tokens", {
+      send({
+        type: "tokens",
         id: data.id,
         characters: text.length,
         firstToken,
-        elapsed: performance.now() - start,
       });
     }
     if (cancelled) {
@@ -91,11 +112,10 @@ self.onmessage = async ({ data }) => {
       );
     }
     const action = parseAction(text, tools);
-    send("result", {
+    send({
+      type: "result",
       id: data.id,
       action,
-      elapsed: performance.now() - start,
-      firstToken,
       usage: {
         input: usage?.prompt_tokens || 0,
         output: usage?.completion_tokens || 0,
@@ -104,8 +124,8 @@ self.onmessage = async ({ data }) => {
       metrics: usage?.extra,
     });
   } catch (error) {
-    send("result", { id: data.id, error: error.message });
+    send({ type: "result", id: data.id, error: errorMessage(error) });
   } finally {
     generating = false;
   }
-};
+}

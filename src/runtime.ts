@@ -1,33 +1,75 @@
-import { PROJECT_FILES } from "./project-files.js";
-import { starter } from "./starter.js";
+import {
+  commandSchema,
+  inferenceRequestSchema,
+  inferenceResultSchema,
+  parseAgentEvent,
+  requestIdSchema,
+} from "../shared/contracts.ts";
+import type {
+  AgentEvent,
+  CommandInput,
+  InferenceResult,
+} from "../shared/contracts.ts";
+import { errorMessage } from "../shared/errors.ts";
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+import { PROJECT_FILES } from "./project-files.ts";
+import { starter } from "./starter.ts";
+import type { ProjectFile, ProjectFiles, RuntimeEvents } from "./types.ts";
+
+// The Wanix custom element supplies this filesystem after its ready event.
+interface WanixFilesystem {
+  makeDirAll(path: string): Promise<unknown>;
+  bind(source: string, destination: string): Promise<unknown>;
+  readText(path: string): Promise<string>;
+  writeFile(path: string, content: string): Promise<unknown>;
+  rename(from: string, to: string): Promise<unknown>;
+  remove(path: string): Promise<unknown>;
+  readDir(path: string): Promise<(string | { Name?: string; name?: string })[]>;
+}
+interface WanixNamespace extends HTMLElement {
+  root: WanixFilesystem;
+}
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class LinuxRuntime extends EventTarget {
-  root;
+  root!: WanixFilesystem;
+  system!: WanixNamespace;
+  bootTimer?: ReturnType<typeof setTimeout>;
   running = false;
-  seenRequests = new Set();
-  busy = false;
+  seenRequests = new Set<string>();
+  lastRequestText = "";
 
-  /**
-   * @template {keyof import('./types.ts').RuntimeEvents} K
-   * @param {K} type
-   * @param {(event: CustomEvent<import('./types.ts').RuntimeEvents[K]>) => void} listener
-   * @param {boolean | AddEventListenerOptions} [options]
-   */
-  addEventListener(type, listener, options) {
+  addEventListener<K extends keyof RuntimeEvents>(
+    type: K,
+    listener: (event: CustomEvent<RuntimeEvents[K]>) => void,
+    options?: boolean | AddEventListenerOptions,
+  ): void;
+  addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject | null,
+    options?: boolean | AddEventListenerOptions,
+  ): void;
+  addEventListener(
+    type: string,
+    listener:
+      | EventListenerOrEventListenerObject
+      | ((event: CustomEvent<RuntimeEvents[keyof RuntimeEvents]>) => void)
+      | null,
+    options?: boolean | AddEventListenerOptions,
+  ) {
     super.addEventListener(
       type,
-      /** @type {EventListener} */ (listener),
+      listener as EventListenerOrEventListenerObject | null,
       options,
     );
   }
 
-  emit(type, detail) {
+  emit<K extends keyof RuntimeEvents>(type: K, detail: RuntimeEvents[K]) {
     this.dispatchEvent(new CustomEvent(type, { detail }));
   }
 
-  async boot(mount) {
+  async boot(mount: HTMLElement) {
     const response = await fetch("/agent-rootfs.tgz", { method: "HEAD" });
     if (
       !response.ok ||
@@ -52,11 +94,11 @@ export class LinuxRuntime extends EventTarget {
         document.head.append(script);
       });
     }
-    this.system = document.createElement("wanix-namespace");
+    this.system = document.createElement("wanix-namespace") as WanixNamespace;
     this.system.id = "agent-linux";
     this.system.setAttribute("wasm", "/runtime/wanix.wasm");
     this.system.innerHTML = `<wanix-bind dst="." type="archive" src="/agent-rootfs.tgz"></wanix-bind><wanix-bind dst="#vm/v86" type="archive" src="/runtime/v86.tgz"></wanix-bind>`;
-    const ready = new Promise((resolve, reject) => {
+    const ready = new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(
         () =>
           reject(new Error("Wanix initialization timed out. Reload to retry.")),
@@ -74,7 +116,11 @@ export class LinuxRuntime extends EventTarget {
         "error",
         (event) => {
           clearTimeout(timeout);
-          reject(event.detail?.error || new Error("Wanix boot failed"));
+          reject(
+            event instanceof CustomEvent
+              ? event.detail?.error || new Error("Wanix boot failed")
+              : new Error("Wanix boot failed"),
+          );
         },
         { once: true },
       );
@@ -90,7 +136,10 @@ export class LinuxRuntime extends EventTarget {
       this.emit("storage", "OPFS · saved on this device");
     } catch (error) {
       this.emit("storage", "Memory only · export before closing");
-      this.emit("diagnostic", `Persistence unavailable: ${error.message}`);
+      this.emit(
+        "diagnostic",
+        `Persistence unavailable: ${errorMessage(error)}`,
+      );
     }
     for (const file of PROJECT_FILES) {
       try {
@@ -108,7 +157,12 @@ export class LinuxRuntime extends EventTarget {
     vm.setAttribute("term", "");
     vm.setAttribute("start", "");
     vm.addEventListener("error", (event) =>
-      this.emit("fatal", event.detail?.error?.message || "VM failed"),
+      this.emit(
+        "fatal",
+        event instanceof CustomEvent
+          ? errorMessage(event.detail?.error || "VM failed")
+          : "VM failed",
+      ),
     );
     this.system.append(vm);
     const terminal = document.createElement("wanix-term");
@@ -126,27 +180,28 @@ export class LinuxRuntime extends EventTarget {
     );
   }
 
-  async snapshot() {
+  async snapshot(): Promise<ProjectFiles> {
     const entries = await Promise.all(
       PROJECT_FILES.map(async (file) => [
         file,
         await this.root.readText(`project/${file}`),
       ]),
     );
-    return Object.fromEntries(entries);
+    return Object.fromEntries(entries) as ProjectFiles;
   }
 
-  async command(type, message) {
+  async command(input: CommandInput) {
     if (!this.root) {
       throw new Error("Linux is not booted");
     }
-    const id = crypto.randomUUID();
-    let cleanup;
+    const command = commandSchema.parse({ ...input, id: crypto.randomUUID() });
+    const { id, type } = command;
+    let cleanup: (() => void) | undefined;
     // Reset must finish in Pi before another prompt can replace the mailbox.
     const acknowledged =
       type === "new_session"
-        ? new Promise((resolve, reject) => {
-            const onEvent = ({ detail }) => {
+        ? new Promise<void>((resolve, reject) => {
+            const onEvent = ({ detail }: CustomEvent<AgentEvent>) => {
               if (detail.type === "response" && detail.id === id) {
                 cleanup?.();
                 if (detail.success) {
@@ -166,18 +221,14 @@ export class LinuxRuntime extends EventTarget {
             }, 15000);
             cleanup = () => {
               clearTimeout(timer);
-              this.removeEventListener("event", onEvent);
+              this.removeEventListener("event", onEvent as EventListener);
             };
             this.addEventListener("event", onEvent);
           })
         : Promise.resolve();
     try {
       await Promise.all([
-        this.atomic("bridge/command.json", {
-          id,
-          type,
-          ...(message ? { message } : {}),
-        }),
+        this.atomic("bridge/command.json", command),
         acknowledged,
       ]);
     } finally {
@@ -185,16 +236,17 @@ export class LinuxRuntime extends EventTarget {
     }
   }
 
-  async atomic(path, value) {
+  async atomic(path: string, value: unknown) {
     await this.root.writeFile(path + ".tmp", JSON.stringify(value));
     await this.root.rename(path + ".tmp", path);
   }
 
-  async respond(response) {
-    await this.atomic(`bridge/response-${response.id}.json`, response);
+  async respond(response: InferenceResult) {
+    const result = inferenceResultSchema.parse(response);
+    await this.atomic(`bridge/response-${result.id}.json`, result);
   }
 
-  async saveFile(file, content, expected) {
+  async saveFile(file: ProjectFile, content: string, expected: string) {
     if (!PROJECT_FILES.includes(file)) {
       throw new Error("Unknown workspace file");
     }
@@ -213,7 +265,7 @@ export class LinuxRuntime extends EventTarget {
     for (const file of PROJECT_FILES) {
       await this.root.writeFile(`project/${file}`, starter[file]);
     }
-    await this.command("new_session");
+    await this.command({ type: "new_session" });
     this.emit("snapshot", await this.snapshot());
   }
 
@@ -226,11 +278,24 @@ export class LinuxRuntime extends EventTarget {
           .map((entry) =>
             typeof entry === "string" ? entry : (entry.Name ?? entry.name),
           )
-          .filter(Boolean)
+          .filter((name): name is string => typeof name === "string")
           .toSorted();
         for (const name of names.filter((n) => /^event-\d+\.json$/.test(n))) {
-          const event = JSON.parse(await this.root.readText(`bridge/${name}`));
+          const text = await this.root.readText(`bridge/${name}`);
           await this.root.remove(`bridge/${name}`);
+          let event;
+          try {
+            event = parseAgentEvent(JSON.parse(text));
+          } catch (error) {
+            this.emit(
+              "diagnostic",
+              `Invalid guest event ${name}: ${errorMessage(error)}`,
+            );
+            continue;
+          }
+          if (!event) {
+            continue;
+          }
           if (event.type === "ready") {
             clearTimeout(this.bootTimer);
           }
@@ -243,27 +308,59 @@ export class LinuxRuntime extends EventTarget {
           }
         }
         if (names.includes("request.json")) {
-          const request = JSON.parse(
-            await this.root.readText("bridge/request.json"),
-          );
-          if (!this.seenRequests.has(request.id)) {
-            // Continue even if we can't read the app files;
-            // the agent may need to repair a missing file.
-            const workspaceFiles = await this.snapshot().catch(() => undefined);
-            this.seenRequests.add(request.id);
-            this.emit("inference", {
-              ...request,
-              context: { ...request.context, workspaceFiles },
-            });
+          const text = await this.root.readText("bridge/request.json");
+          if (text !== this.lastRequestText) {
+            await this.receiveRequest(text);
+            this.lastRequestText = text;
           }
         }
         failures = 0;
       } catch (error) {
         if (++failures === 5) {
-          this.emit("diagnostic", `Bridge read failed: ${error.message}`);
+          this.emit("diagnostic", `Bridge read failed: ${errorMessage(error)}`);
         }
       }
       await delay(250);
     }
+  }
+
+  async receiveRequest(text: string) {
+    let value: unknown;
+    try {
+      value = JSON.parse(text);
+    } catch (error) {
+      this.emit(
+        "diagnostic",
+        `Invalid inference request JSON: ${errorMessage(error)}`,
+      );
+      return;
+    }
+    const parsed = inferenceRequestSchema.safeParse(value);
+    if (!parsed.success) {
+      const error = `Invalid inference request: ${parsed.error.message}`;
+      this.emit("diagnostic", error);
+      // Reply only when the ID is safe to use as a bridge filename.
+      const id = requestIdSchema.safeParse(
+        typeof value === "object" && value !== null && "id" in value
+          ? value.id
+          : undefined,
+      );
+      if (id.success && !this.seenRequests.has(id.data)) {
+        await this.respond({ id: id.data, error });
+        this.seenRequests.add(id.data);
+      }
+      return;
+    }
+    const request = parsed.data;
+    if (this.seenRequests.has(request.id)) {
+      return;
+    }
+    // Missing files must not prevent the agent from repairing the workspace.
+    const workspaceFiles = await this.snapshot().catch(() => undefined);
+    this.seenRequests.add(request.id);
+    this.emit("inference", {
+      ...request,
+      context: { ...request.context, workspaceFiles },
+    });
   }
 }

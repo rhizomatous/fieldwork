@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { LinuxRuntime } from "../src/runtime.js";
+import { LinuxRuntime } from "../src/runtime.ts";
 
 test("new session waits for its matching guest acknowledgement", async () => {
   const runtime = new LinuxRuntime();
@@ -13,7 +13,7 @@ test("new session waits for its matching guest acknowledgement", async () => {
     rename: async () => {},
   };
   let resolved = false;
-  const pending = runtime.command("new_session").then(() => {
+  const pending = runtime.command({ type: "new_session" }).then(() => {
     resolved = true;
   });
 
@@ -81,4 +81,60 @@ test("inference continues when optional recovery context cannot be read", async 
   assert.equal(attempts, 1);
   assert.equal(inference.context.workspaceFiles, undefined);
   assert.equal(inference.id, "request-1");
+});
+
+test("malformed guest events cannot block later events in the bridge", async () => {
+  const runtime = new LinuxRuntime();
+  const files = new Map([
+    ["bridge/event-00000001.json", "{"],
+    [
+      "bridge/event-00000002.json",
+      JSON.stringify({ type: "boot", message: 12 }),
+    ],
+    ["bridge/event-00000003.json", JSON.stringify({ type: "turn_start" })],
+    ["bridge/event-00000004.json", JSON.stringify({ type: "ready" })],
+  ]);
+  runtime.root = {
+    readDir: async () => [...files.keys()].map((name) => name.slice(7)),
+    readText: async (path) => files.get(path),
+    remove: async (path) => files.delete(path),
+  };
+  const diagnostics = [];
+  const events = [];
+  runtime.addEventListener("diagnostic", ({ detail }) =>
+    diagnostics.push(detail),
+  );
+  runtime.addEventListener("event", ({ detail }) => {
+    events.push(detail);
+    runtime.running = false;
+  });
+  runtime.running = true;
+  await runtime.poll();
+  assert.deepEqual(events, [{ type: "ready" }]);
+  assert.equal(diagnostics.length, 2);
+  assert.equal(files.size, 0);
+});
+
+test("invalid inference requests return one correlated error without dispatching inference", async () => {
+  const runtime = new LinuxRuntime();
+  const responses = [];
+  const diagnostics = [];
+  runtime.respond = async (response) => responses.push(response);
+  runtime.addEventListener("inference", () =>
+    assert.fail("Invalid request reached inference"),
+  );
+  runtime.addEventListener("diagnostic", ({ detail }) =>
+    diagnostics.push(detail),
+  );
+  const badRequest = JSON.stringify({ id: "one", context: { messages: 42 } });
+  await runtime.receiveRequest(badRequest);
+  await runtime.receiveRequest(badRequest);
+  await runtime.receiveRequest(
+    JSON.stringify({ id: "../outside", context: {} }),
+  );
+  await runtime.receiveRequest("{");
+  assert.equal(responses.length, 1);
+  assert.equal(responses[0].id, "one");
+  assert.match(responses[0].error, /Invalid inference request/);
+  assert.equal(diagnostics.length, 4);
 });

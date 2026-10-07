@@ -1,4 +1,4 @@
-import { INFERENCE_LIMITS, MODEL } from "../shared/inference-config.mjs";
+import { INFERENCE_LIMITS, MODEL } from "../shared/inference-config.ts";
 
 import type {
   LinuxPhase,

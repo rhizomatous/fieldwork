@@ -1,45 +1,13 @@
-import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { mkdir, copyFile, readFile, writeFile, cp } from "node:fs/promises";
+import { mkdir, copyFile, cp } from "node:fs/promises";
+import path from "node:path";
 
 import { build } from "esbuild";
 
-const dir = ".cache/pi-runtime";
-await mkdir(dir, { recursive: true });
-const lock = await readFile("guest/package-lock.json");
-const digest = createHash("sha256").update(lock).digest("hex");
-
-let installed = false;
-
-try {
-  installed = (await readFile(`${dir}/.lock-digest`, "utf8")) === digest;
-} catch {}
-
-await copyFile("guest/package.json", `${dir}/package.json`);
-await copyFile("guest/package-lock.json", `${dir}/package-lock.json`);
-
-if (!installed) {
-  execFileSync(
-    "npm",
-    ["ci", "--prefix", dir, "--omit=optional", "--ignore-scripts"],
-    { stdio: "inherit" },
-  );
-  await writeFile(`${dir}/.lock-digest`, digest);
-}
-
-for (const file of ["supervisor.mjs", "provider.mjs"]) {
-  await copyFile(`guest/${file}`, `${dir}/${file}`);
-}
-
-// Preserve the guest's relative import of the shared inference configuration.
-await mkdir(".cache/shared", { recursive: true });
-await copyFile(
-  "shared/inference-config.mjs",
-  ".cache/shared/inference-config.mjs",
-);
+import { guestRuntimeDir } from "./prepare-guest.mjs";
 
 await build({
-  entryPoints: [`${dir}/supervisor.mjs`],
+  entryPoints: ["guest/supervisor.ts"],
+  nodePaths: [path.resolve(guestRuntimeDir, "node_modules")],
   outfile: ".cache/agent.bundle.mjs",
   bundle: true,
   platform: "node",
@@ -53,7 +21,7 @@ await build({
   external: ["@silvia-odwyer/photon-node", "@mariozechner/clipboard"],
 });
 
-const pi = `${dir}/node_modules/@mariozechner/pi-coding-agent`;
+const pi = `${guestRuntimeDir}/node_modules/@mariozechner/pi-coding-agent`;
 await mkdir(".cache/pi-assets/dist/modes/interactive", { recursive: true });
 
 for (const file of ["package.json", "README.md"]) {

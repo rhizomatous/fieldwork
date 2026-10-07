@@ -43,13 +43,13 @@
       }
     },
     {
-      "files": ["src/inference.worker.js"],
+      "files": ["src/inference.worker.ts"],
       "env": {
         "worker": true
       }
     },
     {
-      "files": ["src/session.ts", "src/inference.worker.js"],
+      "files": ["src/session.ts", "src/inference.worker.ts"],
       "rules": {
         "unicorn/require-post-message-target-origin": "off"
       }

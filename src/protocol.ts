@@ -1,7 +1,15 @@
-import { compactContext, editFeedback } from "./inference-context.js";
-import { PROJECT_FILES } from "./project-files.js";
+import { actionSchema } from "../shared/contracts.ts";
+import type {
+  InferenceContext,
+  InferenceTool,
+  TranscriptMessage,
+} from "../shared/contracts.ts";
 
-export function inferenceRequest(context) {
+import { compactContext, editFeedback } from "./inference-context.ts";
+import { PROJECT_FILES } from "./project-files.ts";
+import type { ProjectFile } from "./types.ts";
+
+export function inferenceRequest(context: InferenceContext) {
   const tools = (context.tools || []).filter((tool) =>
     ["read", "edit", "write", "bash"].includes(tool.name),
   );
@@ -13,13 +21,13 @@ export function inferenceRequest(context) {
   return { messages, schema, tools };
 }
 
-function inspectCurrentTurn(transcript) {
+function inspectCurrentTurn(transcript: TranscriptMessage[]) {
   const lastUser = transcript.findLastIndex(
     (message) => message.role === "user",
   );
   const turn = transcript.slice(lastUser + 1);
-  const reads = new Map();
-  const inspected = new Set();
+  const reads = new Map<string, string>();
+  const inspected = new Set<string>();
   for (const message of turn) {
     if (message.role === "assistant" && Array.isArray(message.content)) {
       for (const block of message.content) {
@@ -27,7 +35,8 @@ function inspectCurrentTurn(transcript) {
           block.type === "toolCall" &&
           block.name === "read" &&
           !block.arguments.offset &&
-          !block.arguments.limit
+          !block.arguments.limit &&
+          typeof block.arguments.path === "string"
         ) {
           reads.set(block.id, block.arguments.path);
         }
@@ -36,12 +45,13 @@ function inspectCurrentTurn(transcript) {
     if (
       message.role === "toolResult" &&
       !message.isError &&
+      message.toolCallId &&
       reads.has(message.toolCallId)
     ) {
       const path = reads
-        .get(message.toolCallId)
+        .get(message.toolCallId)!
         .replace(/^(?:\.\/|\/project\/)/, "");
-      if (PROJECT_FILES.includes(path)) {
+      if (PROJECT_FILES.includes(path as ProjectFile)) {
         inspected.add(path);
       }
     }
@@ -54,8 +64,23 @@ function inspectCurrentTurn(transcript) {
   };
 }
 
-function buildActionSchema(tools, { unread, hasToolError }) {
-  const schema = {
+type ActionBranch = {
+  type: "object";
+  properties: {
+    type: { const: "message" | "tool" };
+    name?: { const: string };
+    arguments?: InferenceTool["parameters"];
+    text?: { type: "string" };
+  };
+  required: string[];
+  additionalProperties: false;
+};
+
+function buildActionSchema(
+  tools: InferenceTool[],
+  { unread, hasToolError }: ReturnType<typeof inspectCurrentTurn>,
+) {
+  const schema: { anyOf: ActionBranch[] } = {
     anyOf: [
       {
         type: "object",
@@ -63,7 +88,7 @@ function buildActionSchema(tools, { unread, hasToolError }) {
         required: ["type", "text"],
         additionalProperties: false,
       },
-      ...tools.map((tool) => ({
+      ...tools.map((tool): ActionBranch => ({
         type: "object",
         properties: {
           type: { const: "tool" },
@@ -89,7 +114,7 @@ function buildActionSchema(tools, { unread, hasToolError }) {
     schema.anyOf[0].properties.arguments = {
       ...schema.anyOf[0].properties.arguments,
       properties: {
-        ...schema.anyOf[0].properties.arguments.properties,
+        ...schema.anyOf[0].properties.arguments?.properties,
         path: { type: "string", enum: unread },
       },
     };
@@ -98,7 +123,7 @@ function buildActionSchema(tools, { unread, hasToolError }) {
   return schema;
 }
 
-function buildSystemPrompt(systemPrompt, tools) {
+function buildSystemPrompt(systemPrompt: string, tools: InferenceTool[]) {
   return `${systemPrompt}
 You control coding tools through JSON. Return exactly one JSON object per response.
 First inspect all three app files. Use edit for small, targeted changes to existing files. Copy oldText from the actual file: use the shortest unique anchor, preserving whitespace. Reserve write for creating new files or an explicitly requested full replacement.
@@ -112,8 +137,9 @@ After each tool call you receive its result. A failed exact-match edit applies N
 Available tools: ${JSON.stringify(tools)}`;
 }
 
-function translateTranscript(transcript, system) {
-  const messages = [{ role: "system", content: system }];
+function translateTranscript(transcript: TranscriptMessage[], system: string) {
+  const messages: { role: "system" | "user" | "assistant"; content: string }[] =
+    [{ role: "system", content: system }];
 
   for (const message of transcript) {
     let content;
@@ -149,7 +175,7 @@ function translateTranscript(transcript, system) {
 
     // Merge adjacent roles for chat templates that require alternation.
     if (messages.at(-1)?.role === role) {
-      messages.at(-1).content += "\n\n" + content;
+      messages.at(-1)!.content += "\n\n" + content;
     } else {
       messages.push({ role, content });
     }
@@ -158,28 +184,16 @@ function translateTranscript(transcript, system) {
   return messages;
 }
 
-export function parseAction(text, tools) {
+export function parseAction(text: string, tools: InferenceTool[]) {
   // WebLLM includes this empty Qwen prefix when enable_thinking is false.
-  const action = JSON.parse(text.replace(/^<think>\s*<\/think>\s*/, ""));
-
-  if (action.type === "message" && typeof action.text === "string") {
-    return action;
-  }
-
+  const action = actionSchema.parse(
+    JSON.parse(text.replace(/^<think>\s*<\/think>\s*/, "")),
+  );
   if (
-    action.type !== "tool" ||
+    action.type === "tool" &&
     !tools.some((tool) => tool.name === action.name)
   ) {
     throw new Error("The model returned an unknown action.");
   }
-
-  if (
-    !action.arguments ||
-    typeof action.arguments !== "object" ||
-    Array.isArray(action.arguments)
-  ) {
-    throw new Error("The model returned invalid tool arguments.");
-  }
-
   return action;
 }

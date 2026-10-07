@@ -4,7 +4,7 @@ A browser-local coding-agent experiment. Pi runs in an emulated Alpine Linux gue
 
 ## Run locally
 
-Requires Node 22+, npm, and Docker with `linux/386` support to build the guest. Docker is **not** needed when using the finished website. Use a desktop Chromium browser with WebGPU and hardware acceleration.
+Requires Node 22.18+, npm, and Docker with `linux/386` support to build the guest. Docker is **not** needed when using the finished website. Use a desktop Chromium browser with WebGPU and hardware acceleration.
 
 ```sh
 npm ci
@@ -62,11 +62,11 @@ stored separately. Starting a new load clears previous progress and errors.
 
 ## Execution boundaries
 
-- `guest/supervisor.mjs` runs **inside Linux**, embeds the real Pi `Agent` core with Pi's built-in read/write/edit/bash tools, receives UI commands, and writes agent events to `/bridge`. The full Pi CLI remains a research target; the working build uses its smaller SDK path.
-- `guest/provider.mjs` is a real Pi custom provider. It writes the model context to `/bridge/request.json` and consumes the corresponding response. Pi validates and executes its normal tools and continues the loop inside Linux.
-- `src/runtime.js` boots Wanix, mounts the persistent project, and transports files and events. No shell tools execute on the host machine.
-- `src/inference.worker.js` owns the WebLLM engine and GPU inference. Structured JSON selects one Pi tool or a final response. It does not execute tools.
-- `src/protocol.js` builds inference requests and validates model actions.
+- `guest/supervisor.ts` runs **inside Linux**, embeds the real Pi `Agent` core with Pi's built-in read/write/edit/bash tools, receives UI commands, and writes agent events to `/bridge`. The full Pi CLI remains a research target; the working build uses its smaller SDK path.
+- `guest/provider.ts` is a real Pi custom provider. It writes the model context to `/bridge/request.json` and consumes the corresponding response. Pi validates and executes its normal tools and continues the loop inside Linux.
+- `src/runtime.ts` boots Wanix, mounts the persistent project, and transports files and events. No shell tools execute on the host machine.
+- `src/inference.worker.ts` owns the WebLLM engine and GPU inference. Structured JSON selects one Pi tool or a final response. It does not execute tools.
+- `src/protocol.ts` builds inference requests and validates model actions.
 - `src/preview.ts` assembles the preview from actual workspace files.
 - The preview iframe runs with `allow-scripts` and without `allow-same-origin`. Its CSP blocks network requests. The initial project supports `index.html`, `style.css`, and `script.js`, not arbitrary assets, npm dependencies, or ES module graphs.
 
@@ -74,10 +74,10 @@ No guest network device is configured. Model downloads are the main external req
 
 ## Versions and implementation choices
 
-Model metadata and token limits live in `shared/inference-config.mjs`, used by
+Model metadata and token limits live in `shared/inference-config.ts`, used by
 the UI, inference worker, and guest provider. Rebuild the guest with
 `npm run guest` after changing shared limits. The supported workspace file list
-lives in `src/project-files.js`; TypeScript derives `ProjectFile` from it.
+lives in `src/project-files.ts`; TypeScript derives `ProjectFile` from it.
 
 - Wanix and extras: `0.4.0-rc2`. The npm default tags differ; pin the explicit version.
 - Wanix's standard Go WASM build is used. The smaller TinyGo build exhausted its heap while unpacking the Pi filesystem in testing.
@@ -213,9 +213,11 @@ The title-bar Theme control offers System (the default), Light, and Dark. The se
 
 ## TypeScript
 
-The React shell, design-system components, and session controller use strict TypeScript. Vite serves `.ts` and `.tsx` directly during development; `npm run dev` requires no preceding compilation. `npm run typecheck` runs `tsc --noEmit` for validation only, and is included in `npm run check`. The production build remains Vite's existing build.
+The browser application, inference worker, shared contracts, and Linux guest use strict TypeScript. Vite serves `.ts` and `.tsx` directly; esbuild bundles the guest into JavaScript for Node inside Linux. Development scripts and tests remain JavaScript. Tests import TypeScript using Node's native type stripping (Node 22.18+ or a newer supported release).
 
-The inference worker, Wanix runtime adapter, protocol/GPU/starter helpers shared with standalone scripts, guest code, and Node scripts/tests remain JavaScript. Shared session and bridge contracts live in `src/types.ts`; the Wanix adapter exposes its event types through JSDoc. JavaScript modules are allowed at that boundary without enabling whole-project JS type checking. Tests import the TypeScript session directly using Node's native type stripping (Node 22.18+ or a newer supported release).
+`shared/contracts.ts` defines Zod schemas and infers the corresponding TypeScript types. Commands, guest events, inference requests/results, worker messages, and model actions are validated at their receiving boundaries. Tool-specific arguments remain Pi's responsibility. `src/types.ts` contains UI/session types and the typed runtime/worker interfaces.
+
+`npm run typecheck` checks both browser and guest code. Guest dependencies are installed from `guest/package-lock.json` into `.cache/pi-runtime`; the guest type checker and bundler use that same dependency tree. The first check requires registry access to populate the cache. `npm run check` also runs formatting, lint, unit tests, and the production build.
 
 ## Workspace file editors
 

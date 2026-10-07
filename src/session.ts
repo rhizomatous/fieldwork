@@ -1,11 +1,13 @@
-import { MODEL } from "../shared/inference-config.mjs";
+import { workerMessageSchema } from "../shared/contracts.ts";
+import { MODEL } from "../shared/inference-config.ts";
 
-import { gpuSupportError } from "./gpu-support.js";
+import { gpuSupportError } from "./gpu-support.ts";
 import { buildPreview } from "./preview.ts";
 import { deriveSessionState } from "./session-state.ts";
 import type {
   AgentEvent,
   InferenceRequest,
+  InferenceWorker,
   ProjectFile,
   ProjectFiles,
   Runtime,
@@ -21,7 +23,7 @@ export function createSession({
   gpu = globalThis.navigator?.gpu,
 }: {
   runtime: Runtime;
-  worker: Worker;
+  worker: InferenceWorker;
   gpu?: GPU;
 }) {
   const listeners = new Set<() => void>();
@@ -248,7 +250,7 @@ export function createSession({
     }
   }
 
-  function handleWorkerError(event: ErrorEvent) {
+  function handleWorkerError(event: Pick<ErrorEvent, "message">) {
     const error = event.message || "Inference worker failed. Reload the page.";
     const request = activeRequest;
 
@@ -330,7 +332,7 @@ export function createSession({
     update({ operation: { type: "prompting" } });
     appendMessage("YOU", text);
     try {
-      await runtime.command("prompt", text);
+      await runtime.command({ type: "prompt", message: text });
     } catch (cause) {
       const error = cause instanceof Error ? cause : new Error(String(cause));
       appendMessage("WORKSPACE", error.message, true);
@@ -345,7 +347,7 @@ export function createSession({
     }
     worker.postMessage({ type: "cancel" });
     try {
-      await runtime.command("abort");
+      await runtime.command({ type: "abort" });
     } catch (cause) {
       const error = cause instanceof Error ? cause : new Error(String(cause));
       appendMessage("WORKSPACE", error.message, true);
@@ -360,7 +362,7 @@ export function createSession({
     update({ operation: { type: "resetting-chat" } });
     try {
       if (state.linuxReady) {
-        await runtime.command("new_session");
+        await runtime.command({ type: "new_session" });
       }
       assistantId = null;
       activeRequest = null;
@@ -446,8 +448,16 @@ export function createSession({
   runtime.addEventListener("inference", ({ detail }) =>
     handleInferenceRequest(detail),
   );
-  worker.onmessage = ({ data }: MessageEvent<WorkerMessage>) =>
-    handleWorkerMessage(data);
+  worker.onmessage = ({ data }) => {
+    const parsed = workerMessageSchema.safeParse(data);
+    if (!parsed.success) {
+      handleWorkerError({
+        message: `Invalid inference worker message: ${parsed.error.message}`,
+      });
+      return;
+    }
+    return handleWorkerMessage(parsed.data);
+  };
   worker.onerror = handleWorkerError;
 
   checkGPU();
