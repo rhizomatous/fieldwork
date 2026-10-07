@@ -41,7 +41,7 @@ export function PromptComposer({ state, session }: PanelProps) {
         showStop={state.busy && !state.resettingChat}
         onStop={() => session.stop()}
         hint={hint}
-        suggestions={suggestions}
+        suggestions={state.messages.length === 0 ? suggestions : []}
         label="Ask the agent to change the app"
       />
     </div>
