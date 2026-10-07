@@ -3,6 +3,8 @@ import fs from "node:fs";
 
 import { createAssistantMessageEventStream } from "@mariozechner/pi-ai";
 
+import { INFERENCE_LIMITS } from "../shared/inference-config.mjs";
+
 const dir = process.env.BRIDGE_DIR || "/bridge";
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -24,8 +26,8 @@ export default function browserProvider(pi) {
         reasoning: false,
         input: ["text"],
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-        contextWindow: 8192,
-        maxTokens: 2048,
+        contextWindow: INFERENCE_LIMITS.contextTokens,
+        maxTokens: INFERENCE_LIMITS.maxOutputTokens,
       },
     ],
     streamSimple(model, context, options) {

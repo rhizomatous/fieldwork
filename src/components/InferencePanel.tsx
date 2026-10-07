@@ -1,3 +1,4 @@
+import { models } from "../../shared/inference-config.mjs";
 import { Button } from "../design-system/Button.tsx";
 
 import "./InferencePanel.css";
@@ -11,7 +12,7 @@ export function InferencePanel({ state, session }: PanelProps) {
     <section className="model-panel" aria-labelledby="model-title">
       <h2 id="model-title">Inference</h2>
       <div className="runtime-status">
-        <span>Qwen3.5 4B</span>
+        <span>{models.find((model) => model.id === state.model)?.label}</span>
         <StatusIndicator id="model-state" value={state.modelStatus} />
       </div>
       <div

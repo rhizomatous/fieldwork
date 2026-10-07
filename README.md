@@ -62,6 +62,11 @@ No guest network device is configured. Model downloads are the main external req
 
 ## Versions and implementation choices
 
+Model metadata and token limits live in `shared/inference-config.mjs`, used by
+the UI, inference worker, and guest provider. Rebuild the guest with
+`npm run guest` after changing shared limits. The supported workspace file list
+lives in `src/project-files.js`; TypeScript derives `ProjectFile` from it.
+
 - Wanix and extras: `0.4.0-rc2`. The npm default tags differ; pin the explicit version.
 - Wanix's standard Go WASM build is used. The smaller TinyGo build exhausted its heap while unpacking the Pi filesystem in testing.
 - Alpine: 3.22, x86; Node 22; Pi: `@mariozechner/pi-coding-agent@0.73.1`. This established release has a tested provider/RPC interface; upstream has since renamed its packages. The guest dependency graph is locked in `guest/package-lock.json`.

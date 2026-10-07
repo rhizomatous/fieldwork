@@ -5,3 +5,4 @@ public/runtime/
 public/agent-rootfs.tgz
 *.log
 .DS_Store
+IMPROVEMENTS.md

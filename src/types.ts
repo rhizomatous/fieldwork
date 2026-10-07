@@ -1,11 +1,9 @@
+import type { PROJECT_FILES } from "./project-files.js";
 import type { createSession } from "./session.ts";
 
 export type Status = { text: string; kind: "" | "ready" | "busy" | "error" };
-export type ProjectFiles = Record<
-  "index.html" | "style.css" | "script.js",
-  string
->;
-export type ProjectFile = keyof ProjectFiles;
+export type ProjectFile = (typeof PROJECT_FILES)[number];
+export type ProjectFiles = Record<ProjectFile, string>;
 
 export type ChatMessage = {
   id: number;

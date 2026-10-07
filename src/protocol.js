@@ -1,6 +1,5 @@
 import { compactContext, editFeedback } from "./inference-context.js";
-
-export const PROJECT_FILES = ["index.html", "style.css", "script.js"];
+import { PROJECT_FILES } from "./project-files.js";
 
 export function inferenceRequest(context) {
   const transcript = context.messages || [];

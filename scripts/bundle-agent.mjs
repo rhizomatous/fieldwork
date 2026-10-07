@@ -31,6 +31,13 @@ for (const file of ["supervisor.mjs", "provider.mjs"]) {
   await copyFile(`guest/${file}`, `${dir}/${file}`);
 }
 
+// Preserve the guest's relative import of the shared inference configuration.
+await mkdir(".cache/shared", { recursive: true });
+await copyFile(
+  "shared/inference-config.mjs",
+  ".cache/shared/inference-config.mjs",
+);
+
 await build({
   entryPoints: [`${dir}/supervisor.mjs`],
   outfile: ".cache/agent.bundle.mjs",

@@ -1,3 +1,5 @@
+import { INFERENCE_LIMITS, models } from "../shared/inference-config.mjs";
+
 import { gpuSupportError } from "./gpu-support.js";
 import { buildPreview } from "./protocol.js";
 import type {
@@ -8,11 +10,10 @@ import type {
   WorkerMessage,
 } from "./types.ts";
 
-export const models = [
-  { id: "Qwen3.5-4B-q4f16_1-MLC", label: "Qwen3.5 4B", memory: "3.9" },
-];
-const modelDetail = (id: string) =>
-  `4-bit weights · ~${models.find((m) => m.id === id)?.memory} GB estimated GPU memory · download on first use`;
+const modelDetail = (id: string) => {
+  const model = models.find((candidate) => candidate.id === id)!;
+  return `${model.weightBits}-bit weights · ~${model.estimatedGpuMemoryGB} GB estimated GPU memory · download on first use`;
+};
 const status = (text: string, kind: Status["kind"] = ""): Status => ({
   text,
   kind,
@@ -241,13 +242,13 @@ export function createSession({
     }
 
     if (data.type === "loaded") {
+      const model = models.find((candidate) => candidate.id === state.model)!;
       update({
         modelReady: true,
         loading: false,
         loadLabel: "Reload model",
         modelStatus: status("Ready", "ready"),
-        loadDetail:
-          "Model loaded locally · 4-bit weights · 4,096-token context",
+        loadDetail: `Model loaded locally · ${model.weightBits}-bit weights · ${INFERENCE_LIMITS.contextTokens.toLocaleString("en-US")}-token context`,
       });
     }
 

@@ -1,5 +1,7 @@
 import { CreateMLCEngine } from "@mlc-ai/web-llm";
 
+import { INFERENCE_LIMITS } from "../shared/inference-config.mjs";
+
 import { gpuSupportError } from "./gpu-support.js";
 import { inferenceRequest, parseAction } from "./protocol.js";
 
@@ -26,7 +28,7 @@ self.onmessage = async ({ data }) => {
       engine = await CreateMLCEngine(
         data.model,
         { initProgressCallback: (progress) => send("progress", progress) },
-        { context_window_size: 8192 },
+        { context_window_size: INFERENCE_LIMITS.contextTokens },
       );
       send("loaded", { model: data.model });
     } catch (error) {
@@ -55,7 +57,7 @@ self.onmessage = async ({ data }) => {
       messages,
       temperature: 0.1,
       extra_body: { enable_thinking: false },
-      max_tokens: 2048,
+      max_tokens: INFERENCE_LIMITS.maxOutputTokens,
       stream: true,
       stream_options: { include_usage: true },
       response_format: { type: "json_object", schema: JSON.stringify(schema) },

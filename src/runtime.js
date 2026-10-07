@@ -1,4 +1,4 @@
-import { PROJECT_FILES } from "./protocol.js";
+import { PROJECT_FILES } from "./project-files.js";
 import { starter } from "./starter.js";
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
