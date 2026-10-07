@@ -19,12 +19,16 @@ await build({
   external: ["@silvia-odwyer/photon-node", "@mariozechner/clipboard"],
 });
 
-const pi = path.dirname(
-  findPackageJSON(
-    "@mariozechner/pi-coding-agent",
-    new URL("../guest/package.json", import.meta.url),
-  ),
+const piPackage = findPackageJSON(
+  "@mariozechner/pi-coding-agent",
+  new URL("../guest/package.json", import.meta.url),
 );
+if (!piPackage) {
+  throw new Error(
+    "Pi package not found. Run npm ci before bundling the guest.",
+  );
+}
+const pi = path.dirname(piPackage);
 await mkdir(".cache/pi-assets/dist/modes/interactive", { recursive: true });
 
 for (const file of ["package.json", "README.md"]) {

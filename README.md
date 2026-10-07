@@ -213,13 +213,13 @@ The title-bar Theme control offers System (the default), Light, and Dark. The se
 
 ## TypeScript
 
-The browser application, inference worker, shared contracts, and Linux guest use strict TypeScript. Vite serves `.ts` and `.tsx` directly; esbuild bundles the guest into JavaScript for Node inside Linux. Development scripts and tests remain JavaScript. Tests import TypeScript using Node's native type stripping (Node 22.18+ or a newer supported release).
+The browser application, inference worker, shared contracts, and Linux guest use strict TypeScript. Vite serves `.ts` and `.tsx` directly; esbuild bundles the guest into JavaScript for Node inside Linux. The Node scripts in `scripts/` run as TypeScript using Node's native type stripping (Node 22.18+ or a newer supported release). Unit tests remain JavaScript and import TypeScript directly. `build-guest.sh` remains shell.
 
 `shared/contracts.ts` defines Zod schemas and infers the corresponding TypeScript types. Commands, guest events, inference requests/results, worker messages, and model actions are validated at their receiving boundaries. Tool-specific arguments remain Pi's responsibility. `src/types.ts` contains UI/session types and the typed runtime/worker interfaces.
 
 `guest/` is an npm workspace. Run `npm ci` at the repository root to install both the app and guest dependencies from one lockfile. Type checking and guest bundling use normal package resolution; neither installs dependencies. The guest still ships as a JavaScript bundle inside the Linux image.
 
-`npm run typecheck` checks both browser and guest code. `npm run check` also runs formatting, lint, unit tests, and the production build.
+`npm run typecheck` checks browser code, guest code, and Node scripts. `tsconfig.scripts.json` uses strict checking, NodeNext module resolution, and `erasableSyntaxOnly` so scripts run directly without a compiler or additional runner. `npm run check` also runs formatting, lint, unit tests, and the production build.
 
 ## Workspace file editors
 

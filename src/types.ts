@@ -6,12 +6,12 @@ import type {
   WorkerRequest,
 } from "../shared/contracts.ts";
 
-import type { PROJECT_FILES } from "./project-files.ts";
+import type { ProjectFile, ProjectFiles } from "./project-files.ts";
 import type { createSession } from "./session.ts";
 
+export type { ProjectFile, ProjectFiles } from "./project-files.ts";
+
 export type Status = { text: string; kind: "" | "ready" | "busy" | "error" };
-export type ProjectFile = (typeof PROJECT_FILES)[number];
-export type ProjectFiles = Record<ProjectFile, string>;
 
 export type ChatMessage = {
   id: number;

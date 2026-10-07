@@ -10,6 +10,13 @@ import {
   inferenceRequestSchema,
   parseAgentEvent,
 } from "../shared/contracts.ts";
+import type {
+  Action,
+  Command,
+  InferenceRequest,
+  AgentEvent,
+} from "../shared/contracts.ts";
+import { isMissingFile } from "../shared/errors.ts";
 import { starter } from "../src/starter.ts";
 
 const root = await fs.mkdtemp(path.join(os.tmpdir(), "fieldwork-smoke-"));
@@ -40,38 +47,41 @@ const container = execFileSync(
   ],
   { encoding: "utf8" },
 ).trim();
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function json(file) {
+async function readJson(file: string): Promise<unknown> {
   try {
-    const value = JSON.parse(
+    const value: unknown = JSON.parse(
       await fs.readFile(path.join(bridge, file), "utf8"),
     );
-    return file === "request.json"
-      ? inferenceRequestSchema.parse(value)
-      : value;
+    return value;
   } catch (error) {
-    if (error.code === "ENOENT") {
+    if (isMissingFile(error)) {
       return null;
     }
     throw error;
   }
 }
 
-async function events() {
+async function readRequest(): Promise<InferenceRequest | null> {
+  const value = await readJson("request.json");
+  return value === null ? null : inferenceRequestSchema.parse(value);
+}
+
+async function events(): Promise<AgentEvent[]> {
   const values = await Promise.all(
     (await fs.readdir(bridge))
       .filter((name) => /^event-\d+\.json$/.test(name))
       .toSorted()
-      .map(json),
+      .map(readJson),
   );
-  for (const event of values) {
-    parseAgentEvent(event);
-  }
-  return values;
+  return values.map(parseAgentEvent).filter((event) => event !== null);
 }
 
-async function until(fn, description) {
+async function until<T>(
+  fn: () => Promise<T | false | null | undefined>,
+  description: string,
+): Promise<T> {
   const deadline = Date.now() + 90_000;
   while (Date.now() < deadline) {
     const found = await fn();
@@ -87,7 +97,8 @@ async function until(fn, description) {
   throw new Error(`Timed out: ${description}`);
 }
 
-async function command(type, message) {
+// Optional message allows the malformed-command fixture below.
+async function command(type: Command["type"], message?: string) {
   const id = randomUUID();
   await fs.writeFile(
     path.join(bridge, "command.tmp"),
@@ -100,11 +111,11 @@ async function command(type, message) {
   return id;
 }
 
-async function respond(request, action) {
+async function respond(request: InferenceRequest, action: Action) {
   await writeResponse(request.id, { id: request.id, action });
 }
 
-async function writeResponse(id, value) {
+async function writeResponse(id: string, value: unknown) {
   const file = path.join(bridge, `response-${id}.json`);
   await fs.writeFile(`${file}.tmp`, JSON.stringify(value));
   await fs.rename(`${file}.tmp`, file);
@@ -119,7 +130,7 @@ try {
   console.log("PASS: bundled Pi starts in Linux without network access");
 
   await command("prompt", "Change the HTML title to Bridge verified.");
-  let request = await until(() => json("request.json"), "first model request");
+  let request = await until(() => readRequest(), "first model request");
   await respond(request, {
     type: "tool",
     name: "read",
@@ -127,7 +138,7 @@ try {
   });
   const first = request.id;
   request = await until(async () => {
-    const value = await json("request.json");
+    const value = await readRequest();
     return value?.id !== first && value;
   }, "read continuation");
 
@@ -153,7 +164,7 @@ try {
 
   const second = request.id;
   request = await until(async () => {
-    const value = await json("request.json");
+    const value = await readRequest();
     return value?.id !== second && value;
   }, "edit continuation");
 
@@ -175,7 +186,10 @@ try {
   const resetId = await command("new_session");
   await until(
     async () =>
-      (await events()).find((event) => event?.id === resetId && event.success),
+      (await events()).find(
+        (event) =>
+          event.type === "response" && event.id === resetId && event.success,
+      ),
     "reset acknowledgement",
   );
 
@@ -187,7 +201,7 @@ try {
   const last = request.id;
   await command("prompt", "Make another change.");
   const freshRequest = await until(async () => {
-    const value = await json("request.json");
+    const value = await readRequest();
     return value?.id !== last && value;
   }, "cancel request");
 
@@ -223,7 +237,7 @@ try {
 
   await command("prompt", "Make a change.");
   const pendingRequest = await until(async () => {
-    const value = await json("request.json");
+    const value = await readRequest();
     return value?.id !== freshRequest.id && value;
   }, "response validation request");
   await writeResponse(pendingRequest.id, {
