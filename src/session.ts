@@ -3,7 +3,10 @@ import { INFERENCE_LIMITS, models } from "../shared/inference-config.mjs";
 import { gpuSupportError } from "./gpu-support.js";
 import { buildPreview } from "./preview.ts";
 import type {
+  AgentEvent,
+  InferenceRequest,
   ProjectFile,
+  ProjectFiles,
   Runtime,
   SessionState,
   Status,
@@ -70,17 +73,18 @@ export function createSession({
     listeners.forEach((listener) => listener());
   }
 
-  function message(who: string, text: string, error = false) {
+  function appendMessage(who: string, text: string, error = false) {
     const id = ++nextId;
     update({ messages: [...state.messages, { id, who, text, error }] });
     return id;
   }
 
-  function diagnostic(text: string) {
+  function appendDiagnostic(text: string) {
     update({ diagnostics: (state.diagnostics + text + "\n").slice(-24000) });
   }
 
-  function done() {
+  // Release the active request and restore idle statuses after completion or failure.
+  function finishActiveOperation() {
     activeRequest = null;
     update({
       busy: false,
@@ -95,20 +99,20 @@ export function createSession({
     });
   }
 
-  function fatal(text: string) {
+  function handleRuntimeFailure(text: string) {
     update({ linuxReady: false });
-    done();
+    finishActiveOperation();
     update({
       agentStatus: status("Failed", "error"),
       bootLabel: "Reload to retry",
     });
-    message("WORKSPACE", text, true);
+    appendMessage("WORKSPACE", text, true);
   }
 
-  runtime.addEventListener("event", ({ detail: event }) => {
+  function handleAgentEvent(event: AgentEvent) {
     switch (event.type) {
       case "boot":
-        diagnostic(event.message);
+        appendDiagnostic(event.message);
         update({
           linuxStatus: status("Running", "ready"),
           agentStatus: status("Starting", "busy"),
@@ -123,10 +127,12 @@ export function createSession({
         });
         break;
       case "diagnostic":
-        diagnostic(event.message);
+        appendDiagnostic(event.message);
         break;
       case "fatal":
-        fatal(event.message + ". Open the boot console for details.");
+        handleRuntimeFailure(
+          event.message + ". Open the boot console for details.",
+        );
         break;
       case "agent_start":
         turnChanged = false;
@@ -150,7 +156,7 @@ export function createSession({
         break;
       case "tool_execution_end":
         if (event.isError) {
-          message(
+          appendMessage(
             "TOOL ERROR",
             (event.result?.content || [])
               .filter((x) => x.type === "text")
@@ -167,7 +173,7 @@ export function createSession({
       case "message_update":
         if (event.assistantMessageEvent?.type === "text_delta") {
           const delta = event.assistantMessageEvent.delta || "";
-          assistantId ??= message("PI", "");
+          assistantId ??= appendMessage("PI", "");
           update({
             messages: state.messages.map((item) =>
               item.id === assistantId
@@ -182,61 +188,53 @@ export function createSession({
         break;
       case "message_end":
         if (event.message?.errorMessage) {
-          message("PI", event.message.errorMessage, true);
+          appendMessage("PI", event.message.errorMessage, true);
         }
         break;
       case "agent_end":
         if (!turnChanged) {
-          message("WORKSPACE", "No app files changed in this turn.");
+          appendMessage("WORKSPACE", "No app files changed in this turn.");
         }
-        done();
+        finishActiveOperation();
         break;
       case "response":
         if (event.success === false) {
-          message("PI", event.error || "Command failed", true);
-          done();
+          appendMessage("PI", event.error || "Command failed", true);
+          finishActiveOperation();
         }
         break;
     }
-  });
+  }
 
-  runtime.addEventListener("diagnostic", ({ detail }) => diagnostic(detail));
-
-  runtime.addEventListener("fatal", ({ detail }) => fatal(detail));
-
-  runtime.addEventListener("storage", ({ detail }) =>
-    update({ storage: detail }),
-  );
-
-  runtime.addEventListener("snapshot", ({ detail }) => {
-    if (JSON.stringify(detail) !== JSON.stringify(state.files)) {
+  function handleSnapshot(files: ProjectFiles) {
+    if (JSON.stringify(files) !== JSON.stringify(state.files)) {
       if (state.busy) {
         turnChanged = true;
       }
-      update({ files: detail, revision: state.revision + 1 });
+      update({ files, revision: state.revision + 1 });
     }
-  });
+  }
 
-  runtime.addEventListener("inference", async ({ detail }) => {
+  async function handleInferenceRequest(request: InferenceRequest) {
     try {
       if (!state.modelReady) {
         await runtime.respond({
-          id: detail.id,
+          id: request.id,
           error: "Load a local model before asking Pi to work.",
         });
         return;
       }
-      activeRequest = detail.id;
+      activeRequest = request.id;
       update({ modelStatus: status("Generating", "busy") });
-      worker.postMessage({ type: "generate", ...detail });
+      worker.postMessage({ type: "generate", ...request });
     } catch (cause) {
       const error = cause instanceof Error ? cause : new Error(String(cause));
-      message("BRIDGE", error.message, true);
-      done();
+      appendMessage("BRIDGE", error.message, true);
+      finishActiveOperation();
     }
-  });
+  }
 
-  worker.onmessage = async ({ data }: MessageEvent<WorkerMessage>) => {
+  async function handleWorkerMessage(data: WorkerMessage) {
     if (data.type === "progress") {
       update({ progress: data.progress || 0, loadDetail: data.text });
     }
@@ -289,13 +287,13 @@ export function createSession({
         await runtime.respond(data);
       } catch (cause) {
         const error = cause instanceof Error ? cause : new Error(String(cause));
-        message("BRIDGE", error.message, true);
-        done();
+        appendMessage("BRIDGE", error.message, true);
+        finishActiveOperation();
       }
     }
-  };
+  }
 
-  worker.onerror = (event) => {
+  function handleWorkerError(event: ErrorEvent) {
     const error = event.message || "Inference worker failed. Reload the page.";
     const request = activeRequest;
 
@@ -305,17 +303,17 @@ export function createSession({
       loadDetail: error,
       loadLabel: "Reload page",
     });
-    done();
+    finishActiveOperation();
     update({ modelStatus: status("Worker failed", "error") });
 
     if (request) {
       runtime
         .respond({ id: request, error })
         .catch((bridgeError: Error) =>
-          message("BRIDGE", bridgeError.message, true),
+          appendMessage("BRIDGE", bridgeError.message, true),
         );
     }
-  };
+  }
 
   async function checkGPU() {
     try {
@@ -342,6 +340,194 @@ export function createSession({
     }
   }
 
+  async function boot(mount: HTMLElement) {
+    if (state.bootStarted) {
+      return;
+    }
+    update({
+      bootStarted: true,
+      linuxStatus: status("Booting", "busy"),
+      bootLabel: "Booting…",
+      agentStatus: status("Waiting", "busy"),
+    });
+    try {
+      await runtime.boot(mount);
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause));
+      update({
+        linuxStatus: status("Failed", "error"),
+        agentStatus: status("Boot failed", "error"),
+        bootLabel: "Reload to retry",
+      });
+      appendMessage("WORKSPACE", error.message, true);
+      appendDiagnostic(error.stack || error.message);
+    }
+  }
+
+  function load() {
+    if (state.busy || state.loading || !state.gpuAvailable) {
+      return;
+    }
+    update({
+      modelReady: false,
+      loading: true,
+      progress: 0,
+      modelStatus: status("Loading", "busy"),
+      loadLabel: "Loading…",
+      loadDetail:
+        "Preparing model download. The first load can take a few minutes.",
+    });
+    worker.postMessage({ type: "load", model: state.model });
+  }
+
+  function selectModel(model: string) {
+    if (state.busy || state.loading || !models.some((m) => m.id === model)) {
+      return;
+    }
+    update({
+      model,
+      modelReady: false,
+      modelStatus: status("Unloaded"),
+      loadLabel: "Load model",
+      loadDetail: modelDetail(model),
+    });
+  }
+
+  async function send(text: string) {
+    text = text.trim();
+    if (
+      !text ||
+      state.busy ||
+      state.savingFile ||
+      !state.linuxReady ||
+      !state.modelReady
+    ) {
+      return false;
+    }
+    update({ busy: true });
+    appendMessage("YOU", text);
+    try {
+      await runtime.command("prompt", text);
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause));
+      appendMessage("WORKSPACE", error.message, true);
+      finishActiveOperation();
+    }
+    return true;
+  }
+
+  async function stop() {
+    if (!state.busy) {
+      return;
+    }
+    worker.postMessage({ type: "cancel" });
+    try {
+      await runtime.command("abort");
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause));
+      appendMessage("WORKSPACE", error.message, true);
+      finishActiveOperation();
+    }
+  }
+
+  async function resetChat() {
+    if (state.busy || state.resettingChat) {
+      return;
+    }
+    update({ busy: true, resettingChat: true });
+    try {
+      if (state.linuxReady) {
+        await runtime.command("new_session");
+      }
+      assistantId = null;
+      activeRequest = null;
+      turnChanged = false;
+      update({ messages: [] });
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause));
+      appendMessage("WORKSPACE", error.message, true);
+    } finally {
+      update({ resettingChat: false });
+      finishActiveOperation();
+    }
+  }
+
+  async function saveFile(
+    file: ProjectFile,
+    content: string,
+    expected: string,
+  ) {
+    if (!state.linuxReady || !state.files) {
+      throw new Error("Start Linux before saving files.");
+    }
+    if (state.busy || state.savingFile) {
+      throw new Error("Wait for the current operation before saving.");
+    }
+    if (state.files[file] !== expected) {
+      throw new Error(
+        "This file changed in the workspace. Reload it before saving.",
+      );
+    }
+    update({ savingFile: file });
+    try {
+      const files = await runtime.saveFile(file, content, expected);
+      update({ files, revision: state.revision + 1 });
+    } finally {
+      update({ savingFile: null });
+    }
+  }
+
+  function refresh() {
+    update({ previewVersion: state.previewVersion + 1 });
+  }
+
+  async function reset() {
+    if (state.busy || state.savingFile || !state.linuxReady) {
+      return;
+    }
+    update({ busy: true });
+    try {
+      await runtime.reset();
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause));
+      appendMessage("WORKSPACE", error.message, true);
+    } finally {
+      finishActiveOperation();
+    }
+  }
+
+  function exportApp() {
+    if (!state.files) {
+      return;
+    }
+    const url = URL.createObjectURL(
+      new Blob([buildPreview(state.files)], { type: "text/html" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "fieldwork-app.html";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  runtime.addEventListener("event", ({ detail }) => handleAgentEvent(detail));
+  runtime.addEventListener("diagnostic", ({ detail }) =>
+    appendDiagnostic(detail),
+  );
+  runtime.addEventListener("fatal", ({ detail }) =>
+    handleRuntimeFailure(detail),
+  );
+  runtime.addEventListener("storage", ({ detail }) =>
+    update({ storage: detail }),
+  );
+  runtime.addEventListener("snapshot", ({ detail }) => handleSnapshot(detail));
+  runtime.addEventListener("inference", ({ detail }) =>
+    handleInferenceRequest(detail),
+  );
+  worker.onmessage = ({ data }: MessageEvent<WorkerMessage>) =>
+    handleWorkerMessage(data);
+  worker.onerror = handleWorkerError;
+
   checkGPU();
 
   return {
@@ -350,161 +536,15 @@ export function createSession({
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    async boot(mount: HTMLElement) {
-      if (state.bootStarted) {
-        return;
-      }
-      update({
-        bootStarted: true,
-        linuxStatus: status("Booting", "busy"),
-        bootLabel: "Booting…",
-        agentStatus: status("Waiting", "busy"),
-      });
-      try {
-        await runtime.boot(mount);
-      } catch (cause) {
-        const error = cause instanceof Error ? cause : new Error(String(cause));
-        update({
-          linuxStatus: status("Failed", "error"),
-          agentStatus: status("Boot failed", "error"),
-          bootLabel: "Reload to retry",
-        });
-        message("WORKSPACE", error.message, true);
-        diagnostic(error.stack || error.message);
-      }
-    },
-    load() {
-      if (state.busy || state.loading || !state.gpuAvailable) {
-        return;
-      }
-      update({
-        modelReady: false,
-        loading: true,
-        progress: 0,
-        modelStatus: status("Loading", "busy"),
-        loadLabel: "Loading…",
-        loadDetail:
-          "Preparing model download. The first load can take a few minutes.",
-      });
-      worker.postMessage({ type: "load", model: state.model });
-    },
-    selectModel(model: string) {
-      if (state.busy || state.loading || !models.some((m) => m.id === model)) {
-        return;
-      }
-      update({
-        model,
-        modelReady: false,
-        modelStatus: status("Unloaded"),
-        loadLabel: "Load model",
-        loadDetail: modelDetail(model),
-      });
-    },
-    async send(text: string) {
-      text = text.trim();
-      if (
-        !text ||
-        state.busy ||
-        state.savingFile ||
-        !state.linuxReady ||
-        !state.modelReady
-      ) {
-        return false;
-      }
-      update({ busy: true });
-      message("YOU", text);
-      try {
-        await runtime.command("prompt", text);
-      } catch (cause) {
-        const error = cause instanceof Error ? cause : new Error(String(cause));
-        message("WORKSPACE", error.message, true);
-        done();
-      }
-      return true;
-    },
-    async stop() {
-      if (!state.busy) {
-        return;
-      }
-      worker.postMessage({ type: "cancel" });
-      try {
-        await runtime.command("abort");
-      } catch (cause) {
-        const error = cause instanceof Error ? cause : new Error(String(cause));
-        message("WORKSPACE", error.message, true);
-        done();
-      }
-    },
-    async saveFile(file: ProjectFile, content: string, expected: string) {
-      if (!state.linuxReady || !state.files) {
-        throw new Error("Start Linux before saving files.");
-      }
-      if (state.busy || state.savingFile) {
-        throw new Error("Wait for the current operation before saving.");
-      }
-      if (state.files[file] !== expected) {
-        throw new Error(
-          "This file changed in the workspace. Reload it before saving.",
-        );
-      }
-      update({ savingFile: file });
-      try {
-        const files = await runtime.saveFile(file, content, expected);
-        update({ files, revision: state.revision + 1 });
-      } finally {
-        update({ savingFile: null });
-      }
-    },
-    refresh() {
-      update({ previewVersion: state.previewVersion + 1 });
-    },
-    async resetChat() {
-      if (state.busy || state.resettingChat) {
-        return;
-      }
-      update({ busy: true, resettingChat: true });
-      try {
-        if (state.linuxReady) {
-          await runtime.command("new_session");
-        }
-        assistantId = null;
-        activeRequest = null;
-        turnChanged = false;
-        update({ messages: [] });
-      } catch (cause) {
-        const error = cause instanceof Error ? cause : new Error(String(cause));
-        message("WORKSPACE", error.message, true);
-      } finally {
-        update({ resettingChat: false });
-        done();
-      }
-    },
-    async reset() {
-      if (state.busy || state.savingFile || !state.linuxReady) {
-        return;
-      }
-      update({ busy: true });
-      try {
-        await runtime.reset();
-      } catch (cause) {
-        const error = cause instanceof Error ? cause : new Error(String(cause));
-        message("WORKSPACE", error.message, true);
-      } finally {
-        done();
-      }
-    },
-    exportApp() {
-      if (!state.files) {
-        return;
-      }
-      const url = URL.createObjectURL(
-        new Blob([buildPreview(state.files)], { type: "text/html" }),
-      );
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "fieldwork-app.html";
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    },
+    boot,
+    load,
+    selectModel,
+    send,
+    stop,
+    resetChat,
+    saveFile,
+    refresh,
+    reset,
+    exportApp,
   };
 }
