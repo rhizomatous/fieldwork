@@ -2,6 +2,9 @@
   "name": "agent-in-browser",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "guest"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -16,7 +19,7 @@
     "lint": "oxlint --deny-warnings .",
     "lint:fix": "oxlint --fix --deny-warnings .",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
-    "typecheck": "node scripts/prepare-guest.mjs && tsc --noEmit && tsc -p tsconfig.guest.json"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.guest.json"
   },
   "dependencies": {
     "@codemirror/lang-css": "6.3.1",

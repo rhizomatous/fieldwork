@@ -10,12 +10,7 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "types": ["node"],
-    "paths": {
-      "@mariozechner/*": [
-        "./.cache/pi-runtime/node_modules/@mariozechner/*/dist/index.d.ts"
-      ]
-    }
+    "types": ["node"]
   },
   "include": ["guest", "shared"]
 }

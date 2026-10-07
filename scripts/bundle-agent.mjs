@@ -1,13 +1,11 @@
 import { mkdir, copyFile, cp } from "node:fs/promises";
+import { findPackageJSON } from "node:module";
 import path from "node:path";
 
 import { build } from "esbuild";
 
-import { guestRuntimeDir } from "./prepare-guest.mjs";
-
 await build({
   entryPoints: ["guest/supervisor.ts"],
-  nodePaths: [path.resolve(guestRuntimeDir, "node_modules")],
   outfile: ".cache/agent.bundle.mjs",
   bundle: true,
   platform: "node",
@@ -21,7 +19,12 @@ await build({
   external: ["@silvia-odwyer/photon-node", "@mariozechner/clipboard"],
 });
 
-const pi = `${guestRuntimeDir}/node_modules/@mariozechner/pi-coding-agent`;
+const pi = path.dirname(
+  findPackageJSON(
+    "@mariozechner/pi-coding-agent",
+    new URL("../guest/package.json", import.meta.url),
+  ),
+);
 await mkdir(".cache/pi-assets/dist/modes/interactive", { recursive: true });
 
 for (const file of ["package.json", "README.md"]) {

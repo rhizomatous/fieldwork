@@ -27,15 +27,15 @@ emit({
 });
 
 try {
-  const [{ Agent }, { default: browserProvider }, read, write, edit, bash] =
-    await Promise.all([
-      import("@mariozechner/pi-agent-core"),
-      import("./provider.ts"),
-      import("../.cache/pi-runtime/node_modules/@mariozechner/pi-coding-agent/dist/core/tools/read.js"),
-      import("../.cache/pi-runtime/node_modules/@mariozechner/pi-coding-agent/dist/core/tools/write.js"),
-      import("../.cache/pi-runtime/node_modules/@mariozechner/pi-coding-agent/dist/core/tools/edit.js"),
-      import("../.cache/pi-runtime/node_modules/@mariozechner/pi-coding-agent/dist/core/tools/bash.js"),
-    ]);
+  const [
+    { Agent },
+    { default: browserProvider },
+    { createReadTool, createWriteTool, createEditTool, createBashTool },
+  ] = await Promise.all([
+    import("@mariozechner/pi-agent-core"),
+    import("./provider.ts"),
+    import("@mariozechner/pi-coding-agent"),
+  ]);
 
   let provider: BrowserProviderConfig | undefined;
   const hooks = new Map<string, () => void>();
@@ -64,10 +64,10 @@ try {
       model,
       thinkingLevel: "off",
       tools: [
-        read.createReadTool(cwd, { autoResizeImages: false }),
-        write.createWriteTool(cwd),
-        edit.createEditTool(cwd),
-        bash.createBashTool(cwd),
+        createReadTool(cwd, { autoResizeImages: false }),
+        createWriteTool(cwd),
+        createEditTool(cwd),
+        createBashTool(cwd),
       ],
     },
     streamFn: provider.streamSimple,

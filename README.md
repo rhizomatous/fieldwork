@@ -81,7 +81,7 @@ lives in `src/project-files.ts`; TypeScript derives `ProjectFile` from it.
 
 - Wanix and extras: `0.4.0-rc2`. The npm default tags differ; pin the explicit version.
 - Wanix's standard Go WASM build is used. The smaller TinyGo build exhausted its heap while unpacking the Pi filesystem in testing.
-- Alpine: 3.22, x86; Node 22; Pi: `@mariozechner/pi-coding-agent@0.73.1`. This established release has a tested provider/RPC interface; upstream has since renamed its packages. The guest dependency graph is locked in `guest/package-lock.json`.
+- Alpine: 3.22, x86; Node 22; Pi: `@mariozechner/pi-coding-agent@0.73.1`. This established release has a tested provider/RPC interface; upstream has since renamed its packages. The app and guest dependency graph is locked in the root `package-lock.json`.
 - WebLLM: `0.2.85`. Model: Qwen3.5 4B, 4-bit, 8,192-token context with up to 2,048 output tokens. Earlier validation notes below refer to the original 1.5B prototype.
 - Guest memory: 512 MiB, plus Wanix, the root filesystem, model allocations, and browser overhead.
 - Current generated rootfs: approximately 36 MiB compressed. This is a working baseline, not a minimal image.
@@ -217,7 +217,9 @@ The browser application, inference worker, shared contracts, and Linux guest use
 
 `shared/contracts.ts` defines Zod schemas and infers the corresponding TypeScript types. Commands, guest events, inference requests/results, worker messages, and model actions are validated at their receiving boundaries. Tool-specific arguments remain Pi's responsibility. `src/types.ts` contains UI/session types and the typed runtime/worker interfaces.
 
-`npm run typecheck` checks both browser and guest code. Guest dependencies are installed from `guest/package-lock.json` into `.cache/pi-runtime`; the guest type checker and bundler use that same dependency tree. The first check requires registry access to populate the cache. `npm run check` also runs formatting, lint, unit tests, and the production build.
+`guest/` is an npm workspace. Run `npm ci` at the repository root to install both the app and guest dependencies from one lockfile. Type checking and guest bundling use normal package resolution; neither installs dependencies. The guest still ships as a JavaScript bundle inside the Linux image.
+
+`npm run typecheck` checks both browser and guest code. `npm run check` also runs formatting, lint, unit tests, and the production build.
 
 ## Workspace file editors
 
