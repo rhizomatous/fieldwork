@@ -31,14 +31,14 @@
   line-height: var(--line-height-message);
 }
 .about-copy p {
-  margin: 0 0 18px;
+  margin: 0 0 12px;
 }
 .about-copy ul {
-  margin: 0 0 18px;
+  margin: 0 0 12px;
   padding-left: 20px;
 }
 .about-copy li + li {
-  margin-top: 10px;
+  margin-top: 6px;
 }
 .about-copy strong {
   font-weight: var(--font-weight-semibold);
