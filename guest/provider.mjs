@@ -24,8 +24,8 @@ export default function browserProvider(pi) {
         reasoning: false,
         input: ["text"],
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-        contextWindow: 4096,
-        maxTokens: 1536,
+        contextWindow: 8192,
+        maxTokens: 2048,
       },
     ],
     streamSimple(model, context, options) {

@@ -11,7 +11,7 @@ export function InferencePanel({ state, session }: PanelProps) {
     <section className="model-panel" aria-labelledby="model-title">
       <h2 id="model-title">Inference</h2>
       <div className="runtime-status">
-        <span>Qwen3 4B</span>
+        <span>Qwen3.5 4B</span>
         <StatusIndicator id="model-state" value={state.modelStatus} />
       </div>
       <div

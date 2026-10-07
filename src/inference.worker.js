@@ -26,7 +26,7 @@ self.onmessage = async ({ data }) => {
       engine = await CreateMLCEngine(
         data.model,
         { initProgressCallback: (progress) => send("progress", progress) },
-        { context_window_size: 4096 },
+        { context_window_size: 8192 },
       );
       send("loaded", { model: data.model });
     } catch (error) {
@@ -48,12 +48,14 @@ self.onmessage = async ({ data }) => {
   let firstToken;
   let text = "";
   let usage;
+  let finishReason;
   try {
-    const { messages, schema } = inferenceRequest(data.context);
+    const { messages, schema, tools } = inferenceRequest(data.context);
     const chunks = await engine.chat.completions.create({
       messages,
       temperature: 0.1,
-      max_tokens: 1536,
+      extra_body: { enable_thinking: false },
+      max_tokens: 2048,
       stream: true,
       stream_options: { include_usage: true },
       response_format: { type: "json_object", schema: JSON.stringify(schema) },
@@ -62,6 +64,7 @@ self.onmessage = async ({ data }) => {
       if (cancelled) {
         throw new Error("Stopped");
       }
+      finishReason = chunk.choices[0]?.finish_reason || finishReason;
       const delta = chunk.choices[0]?.delta.content || "";
       if (delta && firstToken === undefined) {
         firstToken = performance.now() - start;
@@ -80,7 +83,12 @@ self.onmessage = async ({ data }) => {
     if (cancelled) {
       throw new Error("Stopped");
     }
-    const action = parseAction(text, data.context.tools || []);
+    if (finishReason === "length") {
+      throw new Error(
+        "The model response was too long and was not executed. Try a smaller change.",
+      );
+    }
+    const action = parseAction(text, tools);
     send("result", {
       id: data.id,
       action,

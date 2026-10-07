@@ -1,8 +1,43 @@
+import { compactContext, editFeedback } from "./inference-context.js";
+
 export const PROJECT_FILES = ["index.html", "style.css", "script.js"];
 
 export function inferenceRequest(context) {
-  const tools = (context.tools || []).filter((t) =>
-    ["read", "write", "edit", "bash"].includes(t.name),
+  const transcript = context.messages || [];
+  const lastUser = transcript.findLastIndex(
+    (message) => message.role === "user",
+  );
+  const turn = transcript.slice(lastUser + 1);
+  const reads = new Map();
+  const inspected = new Set();
+  for (const message of turn) {
+    if (message.role === "assistant" && Array.isArray(message.content)) {
+      for (const block of message.content) {
+        if (
+          block.type === "toolCall" &&
+          block.name === "read" &&
+          !block.arguments.offset &&
+          !block.arguments.limit
+        ) {
+          reads.set(block.id, block.arguments.path);
+        }
+      }
+    }
+    if (
+      message.role === "toolResult" &&
+      !message.isError &&
+      reads.has(message.toolCallId)
+    ) {
+      const path = reads
+        .get(message.toolCallId)
+        .replace(/^(?:\.\/|\/project\/)/, "");
+      if (PROJECT_FILES.includes(path)) {
+        inspected.add(path);
+      }
+    }
+  }
+  const tools = (context.tools || []).filter((tool) =>
+    ["read", "edit", "write", "bash"].includes(tool.name),
   );
   const schema = {
     anyOf: [
@@ -24,26 +59,45 @@ export function inferenceRequest(context) {
       })),
     ],
   };
-  const transcript = context.messages || [];
-  const lastUser = transcript.findLastIndex(
-    (message) => message.role === "user",
-  );
-  const hasInspected = transcript
-    .slice(lastUser + 1)
-    .some((message) => message.role === "toolResult");
 
-  // Small models otherwise sometimes answer an edit request without inspecting
-  // or changing anything. The first action in each turn must inspect a file.
-  if (!hasInspected && tools.some((tool) => tool.name === "read")) {
+  // This workspace is three small, interdependent files. Inspect all of them
+  // before changing any, so the model has the markup, behavior, and styling.
+  // A failed read still permits an explanation rather than forcing a loop.
+  const unread = PROJECT_FILES.filter((file) => !inspected.has(file));
+  const readFailed = turn.some(
+    (message) => message.role === "toolResult" && message.isError,
+  );
+  if (
+    unread.length &&
+    !readFailed &&
+    tools.some((tool) => tool.name === "read")
+  ) {
     schema.anyOf = schema.anyOf.filter(
       (branch) => branch.properties.name?.const === "read",
     );
+    schema.anyOf[0].properties.arguments = {
+      ...schema.anyOf[0].properties.arguments,
+      properties: {
+        ...schema.anyOf[0].properties.arguments.properties,
+        path: { type: "string", enum: unread },
+      },
+    };
   }
 
-  const system = `${context.systemPrompt || ""}\nYou control the coding tools through JSON. Return exactly one JSON object per response. First use read to inspect the relevant file. Then perform the requested change using edit or write. Only finish after a successful edit, or explain why you cannot make it.\nProtocol examples, not executed actions:\nRead: {"type":"tool","name":"read","arguments":{"path":"index.html"}}\nEdit: {"type":"tool","name":"edit","arguments":{"path":"index.html","edits":[{"oldText":"exact old text","newText":"replacement text"}]}}\nFinish: {"type":"message","text":"What you changed"}\nAfter each tool call you will receive its result. Never claim changes based on intent alone. Available tools:\n${JSON.stringify(tools)}`;
+  const system = `${context.systemPrompt || ""}
+You control coding tools through JSON. Return exactly one JSON object per response.
+First inspect all three app files. Use edit for small, targeted changes to existing files. Copy oldText from the actual file: use the shortest unique anchor, preserving whitespace. Reserve write for creating new files or an explicitly requested full replacement.
+Complete the ENTIRE requested feature in this turn, including markup and behavior. For a new UI control, add its own event handler; keep existing controls and their handlers working. Preserve unrelated content, layout, and styles.
+After an edit, review the actual diff and continue with remaining changes. A successful edit to one file is not necessarily a complete feature. Never finish with work still left to do.
+Protocol examples (not executed actions):
+Read: {"type":"tool","name":"read","arguments":{"path":"index.html"}}
+Edit: {"type":"tool","name":"edit","arguments":{"path":"index.html","edits":[{"oldText":"exact unique existing text","newText":"replacement text"}]}}
+Finish: {"type":"message","text":"What you completed"}
+After each tool call you receive its result. A failed exact-match edit applies NONE of its replacements. Use the actual current file, not the failed proposal, for the next edit.
+Available tools: ${JSON.stringify(tools)}`;
   const messages = [{ role: "system", content: system }];
 
-  for (const message of context.messages || []) {
+  for (const message of compactContext(editFeedback(context))) {
     let content;
 
     if (typeof message.content === "string") {
@@ -67,6 +121,9 @@ export function inferenceRequest(context) {
     }
 
     if (message.role === "toolResult") {
+      if (message.details?.diff && !message.isError) {
+        content += `\nActual diff (line numbers and +/- markers are not file contents):\n${message.details.diff}`;
+      }
       content = `Tool result (${message.toolName}, ${message.isError ? "error" : "success"}):\n${content}`;
     }
 
@@ -80,11 +137,12 @@ export function inferenceRequest(context) {
     }
   }
 
-  return { messages, schema };
+  return { messages, schema, tools };
 }
 
 export function parseAction(text, tools) {
-  const action = JSON.parse(text);
+  // WebLLM includes this empty Qwen prefix when enable_thinking is false.
+  const action = JSON.parse(text.replace(/^<think>\s*<\/think>\s*/, ""));
 
   if (action.type === "message" && typeof action.text === "string") {
     return action;

@@ -13,13 +13,13 @@ npm run guest
 npm run dev -- --port 5199 --strictPort
 ```
 
-Open <http://127.0.0.1:5199>. Click **Start Linux** and **Load model**, then submit a small change when both are ready. The only model is Qwen3 4B (4-bit); its weights download on first use and are cached locally. Linux and Pi startup under emulation can take a minute or longer depending on hardware; the boot console exposes the actual Linux shell and diagnostics.
+Open <http://127.0.0.1:5199>. Click **Start Linux** and **Load model**, then submit a small change when both are ready. The default model is Qwen3.5 4B (4-bit); its weights download on first use and are cached locally. Linux and Pi startup under emulation can take a minute or longer depending on hardware; the boot console exposes the actual Linux shell and diagnostics.
 
 A useful first prompt for the small default model:
 
-> Use the read tool to inspect index.html. Then use the edit tool to change the main heading to "Small ideas, made real." Only finish after the edit tool reports success.
+> Add a reset button that resets the little joys counter to zero.
 
-The workspace lives in browser OPFS when available. Clearing site data removes it. **Reset** restores the three starter files and starts a fresh Pi session. **Export** downloads a self-contained HTML snapshot. Runtime and guest assets are generated locally and ignored by Git.
+The workspace lives in browser OPFS when available. Clearing site data removes it. **Reset project** restores the three starter files and starts a fresh Pi session. Runtime and guest assets are generated locally and ignored by Git.
 
 ```sh
 npm test
@@ -65,7 +65,7 @@ No guest network device is configured. Model downloads are the main external req
 - Wanix and extras: `0.4.0-rc2`. The npm default tags differ; pin the explicit version.
 - Wanix's standard Go WASM build is used. The smaller TinyGo build exhausted its heap while unpacking the Pi filesystem in testing.
 - Alpine: 3.22, x86; Node 22; Pi: `@mariozechner/pi-coding-agent@0.73.1`. This established release has a tested provider/RPC interface; upstream has since renamed its packages. The guest dependency graph is locked in `guest/package-lock.json`.
-- WebLLM: `0.2.85`. Model: Qwen3 4B, 4-bit, 4,096-token context. Earlier validation notes below refer to the original 1.5B prototype.
+- WebLLM: `0.2.85`. Model: Qwen3.5 4B, 4-bit, 8,192-token context with up to 2,048 output tokens. Earlier validation notes below refer to the original 1.5B prototype.
 - Guest memory: 512 MiB, plus Wanix, the root filesystem, model allocations, and browser overhead.
 - Current generated rootfs: approximately 36 MiB compressed. This is a working baseline, not a minimal image.
 
@@ -74,14 +74,14 @@ No guest network device is configured. Model downloads are the main external req
 - Cold boot is still emulated and takes time. The first full-CLI image was 58 MiB and loaded too slowly through 9P. The current build bundles Pi core and its coding tools into a 3.9 MiB JavaScript file, reducing the compressed guest to 36 MiB. Further trimming is possible.
 - Model output streams into diagnostics/metrics, but tool actions are buffered until a complete valid JSON object is available. Pi's final text is delivered after generation.
 - Each user turn is limited to ten model calls. The provider times out after four minutes per call. Small models can still produce poor edits or fail to follow a task.
-- Context is deliberately small. Oversized requests surface engine errors; there is no custom transcript compression layer. Reset starts fresh.
+- Context is limited to 8K tokens. The model sees the current turn and up to four recent user/final-assistant messages (1,000 characters each); previous tool payloads and failed patch proposals are omitted. Oversized files or long individual turns can still exceed the window. Reset chat starts fresh.
 - Stopping aborts the agent and model but does not undo completed writes. The three-file preview refreshes after tool completion; multi-file changes are not transactional.
 - Refresh, reset, and export operate on the three supported files. Additional file types and external dependencies are outside this first version.
 - The pinned older Pi dependency tree reported eight high-severity npm findings at build time. The guest has no network device; the app dependency audit was clean. Review/upgrade the agent dependency tree before public distribution.
 
 ## Validation
 
-- Production frontend build and nine protocol/preview/session tests pass, including subscription lifecycles, inference routing, cancellation, and worker failure recovery.
+- Production frontend build and 29 protocol/preview/session/runtime tests pass, including subscription lifecycles, inference routing, cancellation, and worker failure recovery.
 - Pi version and RPC startup verified in a network-disabled 32-bit Docker container.
 - Deterministic bridge smoke test: Pi executed its real `edit` tool, changed an HTML title, received the tool result, and completed its turn. The inference response in this isolated test was a fixture, not a model-quality test.
 - React migration browser check: model load, Linux boot, OPFS restoration, console toggling, and a real read/edit turn passed. The preview counter survived unrelated UI updates; the final edit appeared as revision 2. No browser errors or warnings were observed.
@@ -119,6 +119,23 @@ import { StatusIndicator } from "./design-system/StatusIndicator.tsx";
 ```
 
 Button classes follow `ds-button` (base), `ds-button--{variant}`, `ds-button--{size}`, and optional `ds-button--icon-only` / `ds-button--destructive`. Size controls geometry and typography; variants control appearance.
+
+## Agent reliability research
+
+The default is Qwen3.5 4B after the October 2026 reset-button trials. The agent still uses Pi's normal `read`, `edit`, `write`, and `bash` tools; existing files are edited with targeted replacements. The suggested reset prompt was not expanded or given a canned implementation.
+
+The bridge previously delivered error text but discarded Pi's successful-edit diffs. It now includes those diffs, supplies fresh file contents after known atomic edit failures, and omits failed patch proposals from subsequent model context. Each turn inspects the three small app files before making changes. Previous tool payloads are dropped between turns; recent user/final-assistant dialogue remains. Qwen's non-thinking mode is explicit and its empty `<think>` prefix is handled before JSON parsing. Truncated responses are rejected before tool execution.
+
+Observed results in one local browser session, using the same reset prompt and starter files:
+
+| Configuration                          | Observed outcome                                                                                        |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Original Qwen3 4B                      | 0/2: stopped after HTML, leaving Reset unconnected.                                                     |
+| Qwen3 4B with stronger edit protocol   | Still failed: duplicate button or invalid JavaScript, depending on inference mode.                      |
+| Qwen2.5-Coder 3B with current protocol | 0/1: edited HTML only; clicking Reset left the count at two.                                            |
+| Qwen3.5 4B with current protocol       | 3/3: two normal edit calls, zero tool errors, five browser checks passed; about 27–29 seconds per task. |
+
+A separate warm-palette regression passed with one CSS edit and zero tool errors; HTML and JavaScript remained byte-for-byte unchanged, and Save still incremented. The Qwen3.5 styling follow-up recovered from one exact-match failure and preserved counter behavior and unrelated CSS. It did **not** implement the requested side-by-side placement, so this was a partial success. Whole-file writes were also investigated and rejected: they could implement the counter but risked overwriting unrelated styling. These are exploratory results, not a general reliability guarantee. WebLLM's catalog estimates roughly 3.9 GB GPU memory for Qwen3.5 4B at its default 4K context, versus 3.4 GB for Qwen3 4B; our 8K setting adds context overhead. Model-card references: [Qwen3.5 4B](https://huggingface.co/Qwen/Qwen3.5-4B), [Qwen2.5-Coder 3B](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct).
 
 ## Color system
 

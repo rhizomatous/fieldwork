@@ -9,7 +9,7 @@ import type {
 } from "./types.ts";
 
 export const models = [
-  { id: "Qwen3-4B-q4f16_1-MLC", label: "Qwen3 4B", memory: "3.4" },
+  { id: "Qwen3.5-4B-q4f16_1-MLC", label: "Qwen3.5 4B", memory: "3.9" },
 ];
 const modelDetail = (id: string) =>
   `4-bit weights · ~${models.find((m) => m.id === id)?.memory} GB estimated GPU memory · download on first use`;

@@ -102,3 +102,87 @@ test("missing workspace files fail visibly instead of substituting starter conte
     /Missing style.css/,
   );
 });
+
+test("inspection walks unread app files before offering writes or completion", () => {
+  const messages = [{ role: "user", content: "Style the reset button" }];
+  const readNames = ["index.html", "style.css", "script.js"];
+  for (const [index, path] of readNames.entries()) {
+    const request = inferenceRequest({ tools, messages });
+    assert.equal(request.schema.anyOf.length, 1);
+    assert.deepEqual(
+      request.schema.anyOf[0].properties.arguments.properties.path.enum,
+      readNames.slice(index),
+    );
+    messages.push(
+      {
+        role: "assistant",
+        content: [
+          { type: "toolCall", id: path, name: "read", arguments: { path } },
+        ],
+      },
+      {
+        role: "toolResult",
+        toolName: "read",
+        toolCallId: path,
+        content: "File contents",
+      },
+    );
+  }
+  assert.ok(
+    inferenceRequest({ tools, messages }).schema.anyOf.some(
+      (branch) => branch.properties.type.const === "message",
+    ),
+  );
+});
+
+test("successful edit diffs are visible to the model", () => {
+  const request = inferenceRequest({
+    tools,
+    messages: [
+      { role: "user", content: "Add a button" },
+      {
+        role: "toolResult",
+        toolName: "edit",
+        content: [{ type: "text", text: "Successfully replaced 1 block" }],
+        details: { diff: "+16 <button>Reset</button>" },
+      },
+    ],
+  });
+  assert.match(
+    request.messages.at(-1).content,
+    /Actual diff.*\n\+16 <button>Reset<\/button>/,
+  );
+});
+
+test("the normal coding tools remain available after inspection", () => {
+  const request = inferenceRequest({
+    tools: [
+      ...tools,
+      ...["edit", "write", "bash"].map((name) => ({
+        name,
+        parameters: { type: "object" },
+      })),
+    ],
+    messages: [],
+  });
+  assert.deepEqual(
+    request.tools.map((tool) => tool.name),
+    ["read", "edit", "write", "bash"],
+  );
+});
+
+test("Qwen's empty non-thinking prefix is accepted without relaxing JSON validation", () => {
+  assert.equal(
+    parseAction(
+      '<think>\n\n</think>\n\n{"type":"message","text":"Done"}',
+      tools,
+    ).text,
+    "Done",
+  );
+  assert.throws(() =>
+    parseAction(
+      '<think>reasoning</think>{"type":"message","text":"Done"}',
+      tools,
+    ),
+  );
+});

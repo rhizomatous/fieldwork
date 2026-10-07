@@ -55,3 +55,30 @@ test("file saves validate names and base content before atomic replacement", asy
   assert.equal(snapshot["index.html"], "new");
   assert.equal(files["project/index.html.tmp"], undefined);
 });
+
+test("inference continues when optional recovery context cannot be read", async () => {
+  const runtime = new LinuxRuntime();
+  let attempts = 0;
+  let inference;
+  runtime.root = {
+    readDir: async () => ["request.json"],
+    readText: async (path) => {
+      if (path === "bridge/request.json") {
+        return JSON.stringify({ id: "request-1", context: { messages: [] } });
+      }
+      if (path === "project/index.html" && attempts++ === 0) {
+        throw new Error("Transient snapshot read failure");
+      }
+      return `fresh ${path}`;
+    },
+  };
+  runtime.addEventListener("inference", ({ detail }) => {
+    inference = detail;
+    runtime.running = false;
+  });
+  runtime.running = true;
+  await runtime.poll();
+  assert.equal(attempts, 1);
+  assert.equal(inference.context.workspaceFiles, undefined);
+  assert.equal(inference.id, "request-1");
+});

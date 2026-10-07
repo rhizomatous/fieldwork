@@ -247,8 +247,14 @@ export class LinuxRuntime extends EventTarget {
             await this.root.readText("bridge/request.json"),
           );
           if (!this.seenRequests.has(request.id)) {
+            // Continue even if we can't read the app files;
+            // the agent may need to repair a missing file.
+            const workspaceFiles = await this.snapshot().catch(() => undefined);
             this.seenRequests.add(request.id);
-            this.emit("inference", request);
+            this.emit("inference", {
+              ...request,
+              context: { ...request.context, workspaceFiles },
+            });
           }
         }
         failures = 0;

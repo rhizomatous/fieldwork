@@ -71,9 +71,9 @@ export function AboutDialog({
             <a
               target="_blank"
               rel="noreferrer"
-              href="https://huggingface.co/Qwen/Qwen3-4B"
+              href="https://huggingface.co/Qwen/Qwen3.5-4B"
             >
-              Qwen3 4B
+              Qwen3.5 4B
             </a>{" "}
             running on{" "}
             <a target="_blank" rel="noreferrer" href="https://webllm.mlc.ai/">
