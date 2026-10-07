@@ -12,23 +12,38 @@ export type ChatMessage = {
   tool?: string;
   error?: boolean;
 };
-export interface SessionState {
-  savingFile: ProjectFile | null;
-  linuxReady: boolean;
-  linuxStatus: Status;
-  bootStarted: boolean;
-  bootLabel: string;
-  modelReady: boolean;
-  loading: boolean;
-  busy: boolean;
-  resettingChat: boolean;
+export type LinuxPhase =
+  | "off"
+  | "booting"
+  | "starting"
+  | "ready"
+  | "boot-error"
+  | "failed";
+export type ModelPhase =
+  | "unloaded"
+  | "loading"
+  | "ready"
+  | "generating"
+  | "load-error"
+  | "worker-error"
+  | "unsupported";
+export type SessionOperation =
+  | { type: "idle" }
+  | { type: "working" }
+  | {
+      type: "prompting" | "resetting-chat" | "resetting-project";
+    }
+  | { type: "saving"; file: ProjectFile };
+
+// Stored facts. Display state is derived and cannot be patched by handlers.
+export interface SessionData {
+  linuxPhase: LinuxPhase;
+  modelPhase: ModelPhase;
+  operation: SessionOperation;
   gpuAvailable: boolean;
-  agentStatus: Status;
-  modelStatus: Status;
-  model: string;
-  loadLabel: string;
-  loadDetail: string;
+  modelError: string | null;
   progress: number;
+  progressMessage: string;
   gpuLabel: string;
   storage: string;
   messages: ChatMessage[];
@@ -40,6 +55,26 @@ export interface SessionState {
   speed: string;
   prefill: string;
   inferenceNote: string;
+}
+export interface SessionState extends SessionData {
+  readonly savingFile: ProjectFile | null;
+  readonly linuxReady: boolean;
+  readonly linuxStatus: Status;
+  readonly bootStarted: boolean;
+  readonly bootLabel: string;
+  readonly modelReady: boolean;
+  readonly loading: boolean;
+  readonly busy: boolean;
+  readonly resettingChat: boolean;
+  readonly agentStatus: Status;
+  readonly modelStatus: Status;
+  readonly loadLabel: string;
+  readonly loadDetail: string;
+  readonly canSend: boolean;
+  readonly canLoadModel: boolean;
+  readonly canResetChat: boolean;
+  readonly canResetProject: boolean;
+  readonly canStop: boolean;
 }
 export type Session = ReturnType<typeof createSession>;
 export type PanelProps = { state: SessionState; session: Session };

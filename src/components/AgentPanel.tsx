@@ -25,7 +25,7 @@ export function AgentPanel({ state, session }: PanelProps) {
         <div className="agent-tools">
           <Button
             variant="ghost"
-            disabled={state.busy || state.messages.length === 0}
+            disabled={!state.canResetChat || state.messages.length === 0}
             onClick={() => session.resetChat()}
             title="Clear conversation and start a fresh agent session; keep app files"
           >

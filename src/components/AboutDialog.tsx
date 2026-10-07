@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 
-import { models } from "../../shared/inference-config.mjs";
+import { MODEL } from "../../shared/inference-config.mjs";
 import { Button } from "../design-system/Button.tsx";
 
 import "./AboutDialog.css";
@@ -69,8 +69,8 @@ export function AboutDialog({
           </li>
           <li>
             Inference is powered by{" "}
-            <a target="_blank" rel="noreferrer" href={models[0].url}>
-              {models[0].label}
+            <a target="_blank" rel="noreferrer" href={MODEL.url}>
+              {MODEL.label}
             </a>{" "}
             running on{" "}
             <a target="_blank" rel="noreferrer" href="https://webllm.mlc.ai/">

@@ -17,8 +17,6 @@ const suggestions: [string, string][] = [
 
 export function PromptComposer({ state, session }: PanelProps) {
   const [prompt, setPrompt] = useState("");
-  const canSend =
-    state.linuxReady && state.modelReady && !state.busy && !state.savingFile;
 
   function getHint() {
     if (state.savingFile) {
@@ -30,7 +28,7 @@ export function PromptComposer({ state, session }: PanelProps) {
     if (state.busy) {
       return "Pi is working inside Linux…";
     }
-    if (canSend) {
+    if (state.canSend) {
       return "Enter to send · Shift\u00a0+\u00a0Enter for a new line";
     }
     return "Start Linux and load a model to begin";
@@ -45,8 +43,8 @@ export function PromptComposer({ state, session }: PanelProps) {
           setPrompt("");
           session.send(text);
         }}
-        canSend={canSend}
-        showStop={state.busy && !state.resettingChat}
+        canSend={state.canSend}
+        showStop={state.canStop}
         onStop={() => session.stop()}
         hint={getHint()}
         suggestions={state.messages.length === 0 ? suggestions : []}

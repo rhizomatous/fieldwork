@@ -1,4 +1,4 @@
-import { models } from "../../shared/inference-config.mjs";
+import { MODEL } from "../../shared/inference-config.mjs";
 import { Button } from "../design-system/Button.tsx";
 
 import "./InferencePanel.css";
@@ -12,7 +12,7 @@ export function InferencePanel({ state, session }: PanelProps) {
     <section className="model-panel" aria-labelledby="model-title">
       <h2 id="model-title">Inference</h2>
       <div className="runtime-status">
-        <span>{models.find((model) => model.id === state.model)?.label}</span>
+        <span>{MODEL.label}</span>
         <StatusIndicator id="model-state" value={state.modelStatus} />
       </div>
       <div
@@ -33,7 +33,7 @@ export function InferencePanel({ state, session }: PanelProps) {
         id="load"
         variant="secondary"
         onClick={() => session.load()}
-        disabled={state.busy || state.loading || !state.gpuAvailable}
+        disabled={!state.canLoadModel}
       >
         {state.loadLabel}
       </Button>

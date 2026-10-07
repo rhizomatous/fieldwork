@@ -1,26 +1,17 @@
-import { INFERENCE_LIMITS, models } from "../shared/inference-config.mjs";
+import { MODEL } from "../shared/inference-config.mjs";
 
 import { gpuSupportError } from "./gpu-support.js";
 import { buildPreview } from "./preview.ts";
+import { deriveSessionState } from "./session-state.ts";
 import type {
   AgentEvent,
   InferenceRequest,
   ProjectFile,
   ProjectFiles,
   Runtime,
-  SessionState,
-  Status,
+  SessionData,
   WorkerMessage,
 } from "./types.ts";
-
-const modelDetail = (id: string) => {
-  const model = models.find((candidate) => candidate.id === id)!;
-  return `${model.weightBits}-bit weights · ~${model.estimatedGpuMemoryGB} GB estimated GPU memory · download on first use`;
-};
-const status = (text: string, kind: Status["kind"] = ""): Status => ({
-  text,
-  kind,
-});
 
 // Owns one VM and one worker for the page lifetime. React only subscribes;
 // mounting, unmounting, and Strict Mode never construct or restart either one.
@@ -38,22 +29,13 @@ export function createSession({
   let turnChanged = false,
     assistantId: number | null = null,
     nextId = 0;
-  let state: SessionState = {
-    savingFile: null,
-    linuxReady: false,
-    linuxStatus: status("Off"),
-    bootStarted: false,
-    bootLabel: "Start Linux",
-    modelReady: false,
-    loading: false,
-    busy: false,
-    resettingChat: false,
+  let sessionData: SessionData = {
+    linuxPhase: "off",
+    modelPhase: "unloaded",
+    operation: { type: "idle" },
     gpuAvailable: false,
-    agentStatus: status("Not started"),
-    modelStatus: status("Unloaded"),
-    model: models[0].id,
-    loadLabel: "Load model",
-    loadDetail: modelDetail(models[0].id),
+    modelError: null,
+    progressMessage: "",
     progress: 0,
     gpuLabel: "Checking WebGPU…",
     storage: "Workspace awaiting Linux",
@@ -68,8 +50,11 @@ export function createSession({
     inferenceNote: "No API key. No inference server.",
   };
 
-  function update(patch: Partial<SessionState>) {
-    state = { ...state, ...patch };
+  let state = deriveSessionState(sessionData);
+
+  function update(patch: Partial<SessionData>) {
+    sessionData = { ...sessionData, ...patch };
+    state = deriveSessionState(sessionData);
     listeners.forEach((listener) => listener());
   }
 
@@ -83,29 +68,19 @@ export function createSession({
     update({ diagnostics: (state.diagnostics + text + "\n").slice(-24000) });
   }
 
-  // Release the active request and restore idle statuses after completion or failure.
   function finishActiveOperation() {
     activeRequest = null;
     update({
-      busy: false,
-      agentStatus: status(
-        state.linuxReady ? "Ready" : "Not started",
-        state.linuxReady ? "ready" : "",
-      ),
-      modelStatus: status(
-        state.modelReady ? "Ready" : "Unloaded",
-        state.modelReady ? "ready" : "",
-      ),
+      operation:
+        state.operation.type === "saving" ? state.operation : { type: "idle" },
+      modelPhase:
+        state.modelPhase === "generating" ? "ready" : state.modelPhase,
     });
   }
 
   function handleRuntimeFailure(text: string) {
-    update({ linuxReady: false });
+    update({ linuxPhase: "failed" });
     finishActiveOperation();
-    update({
-      agentStatus: status("Failed", "error"),
-      bootLabel: "Reload to retry",
-    });
     appendMessage("WORKSPACE", text, true);
   }
 
@@ -113,18 +88,10 @@ export function createSession({
     switch (event.type) {
       case "boot":
         appendDiagnostic(event.message);
-        update({
-          linuxStatus: status("Running", "ready"),
-          agentStatus: status("Starting", "busy"),
-        });
+        update({ linuxPhase: "starting" });
         break;
       case "ready":
-        update({
-          linuxReady: true,
-          linuxStatus: status("Running", "ready"),
-          agentStatus: status("Ready", "ready"),
-          bootLabel: "Linux running",
-        });
+        update({ linuxPhase: "ready" });
         break;
       case "diagnostic":
         appendDiagnostic(event.message);
@@ -137,7 +104,7 @@ export function createSession({
       case "agent_start":
         turnChanged = false;
         assistantId = null;
-        update({ busy: true, agentStatus: status("Working", "busy") });
+        update({ operation: { type: "working" } });
         break;
       case "tool_execution_start":
         update({
@@ -225,7 +192,7 @@ export function createSession({
         return;
       }
       activeRequest = request.id;
-      update({ modelStatus: status("Generating", "busy") });
+      update({ modelPhase: "generating" });
       worker.postMessage({ type: "generate", ...request });
     } catch (cause) {
       const error = cause instanceof Error ? cause : new Error(String(cause));
@@ -235,29 +202,16 @@ export function createSession({
   }
 
   async function handleWorkerMessage(data: WorkerMessage) {
-    if (data.type === "progress") {
-      update({ progress: data.progress || 0, loadDetail: data.text });
+    if (data.type === "progress" && state.loading) {
+      update({ progress: data.progress || 0, progressMessage: data.text });
     }
 
     if (data.type === "loaded") {
-      const model = models.find((candidate) => candidate.id === state.model)!;
-      update({
-        modelReady: true,
-        loading: false,
-        loadLabel: "Reload model",
-        modelStatus: status("Ready", "ready"),
-        loadDetail: `Model loaded locally · ${model.weightBits}-bit weights · ${INFERENCE_LIMITS.contextTokens.toLocaleString("en-US")}-token context`,
-      });
+      update({ modelPhase: "ready" });
     }
 
     if (data.type === "load-error") {
-      update({
-        modelReady: false,
-        loading: false,
-        modelStatus: status("Load failed", "error"),
-        loadLabel: "Retry model",
-        loadDetail: data.error,
-      });
+      update({ modelPhase: "load-error", modelError: data.error });
     }
 
     if (data.type === "tokens" && data.id === activeRequest) {
@@ -270,6 +224,7 @@ export function createSession({
     }
 
     if (data.type === "result" && data.id === activeRequest) {
+      activeRequest = null;
       const speed = data.metrics?.decode_tokens_per_s;
       update({
         ...(data.usage
@@ -278,10 +233,10 @@ export function createSession({
               speed: Number.isFinite(speed) ? speed!.toFixed(1) : "—",
             }
           : {}),
+        modelPhase: "ready",
         inferenceNote: data.error
           ? "Generation interrupted or failed"
           : "Inference completed on this device",
-        modelStatus: status("Ready", "ready"),
       });
       try {
         await runtime.respond(data);
@@ -297,14 +252,8 @@ export function createSession({
     const error = event.message || "Inference worker failed. Reload the page.";
     const request = activeRequest;
 
-    update({
-      modelReady: false,
-      loading: false,
-      loadDetail: error,
-      loadLabel: "Reload page",
-    });
+    update({ modelPhase: "worker-error", modelError: error });
     finishActiveOperation();
-    update({ modelStatus: status("Worker failed", "error") });
 
     if (request) {
       runtime
@@ -329,14 +278,19 @@ export function createSession({
           : "WebGPU unavailable",
         ...(compatibilityError
           ? {
-              modelStatus: status("Unsupported", "error"),
-              loadDetail: compatibilityError,
+              modelPhase: "unsupported" as const,
+              modelError: compatibilityError,
             }
           : {}),
       });
     } catch (cause) {
       const error = cause instanceof Error ? cause : new Error(String(cause));
-      update({ gpuLabel: "WebGPU unavailable", loadDetail: error.message });
+      update({
+        modelPhase: "unsupported",
+        gpuAvailable: false,
+        gpuLabel: "WebGPU unavailable",
+        modelError: error.message,
+      });
     }
   }
 
@@ -344,67 +298,36 @@ export function createSession({
     if (state.bootStarted) {
       return;
     }
-    update({
-      bootStarted: true,
-      linuxStatus: status("Booting", "busy"),
-      bootLabel: "Booting…",
-      agentStatus: status("Waiting", "busy"),
-    });
+    update({ linuxPhase: "booting" });
     try {
       await runtime.boot(mount);
     } catch (cause) {
       const error = cause instanceof Error ? cause : new Error(String(cause));
-      update({
-        linuxStatus: status("Failed", "error"),
-        agentStatus: status("Boot failed", "error"),
-        bootLabel: "Reload to retry",
-      });
+      update({ linuxPhase: "boot-error" });
       appendMessage("WORKSPACE", error.message, true);
       appendDiagnostic(error.stack || error.message);
     }
   }
 
   function load() {
-    if (state.busy || state.loading || !state.gpuAvailable) {
+    if (!state.canLoadModel) {
       return;
     }
     update({
-      modelReady: false,
-      loading: true,
+      modelPhase: "loading",
       progress: 0,
-      modelStatus: status("Loading", "busy"),
-      loadLabel: "Loading…",
-      loadDetail:
-        "Preparing model download. The first load can take a few minutes.",
+      progressMessage: "",
+      modelError: null,
     });
-    worker.postMessage({ type: "load", model: state.model });
-  }
-
-  function selectModel(model: string) {
-    if (state.busy || state.loading || !models.some((m) => m.id === model)) {
-      return;
-    }
-    update({
-      model,
-      modelReady: false,
-      modelStatus: status("Unloaded"),
-      loadLabel: "Load model",
-      loadDetail: modelDetail(model),
-    });
+    worker.postMessage({ type: "load", model: MODEL.id });
   }
 
   async function send(text: string) {
     text = text.trim();
-    if (
-      !text ||
-      state.busy ||
-      state.savingFile ||
-      !state.linuxReady ||
-      !state.modelReady
-    ) {
+    if (!text || !state.canSend) {
       return false;
     }
-    update({ busy: true });
+    update({ operation: { type: "prompting" } });
     appendMessage("YOU", text);
     try {
       await runtime.command("prompt", text);
@@ -417,7 +340,7 @@ export function createSession({
   }
 
   async function stop() {
-    if (!state.busy) {
+    if (!state.canStop) {
       return;
     }
     worker.postMessage({ type: "cancel" });
@@ -431,10 +354,10 @@ export function createSession({
   }
 
   async function resetChat() {
-    if (state.busy || state.resettingChat) {
+    if (!state.canResetChat) {
       return;
     }
-    update({ busy: true, resettingChat: true });
+    update({ operation: { type: "resetting-chat" } });
     try {
       if (state.linuxReady) {
         await runtime.command("new_session");
@@ -447,7 +370,6 @@ export function createSession({
       const error = cause instanceof Error ? cause : new Error(String(cause));
       appendMessage("WORKSPACE", error.message, true);
     } finally {
-      update({ resettingChat: false });
       finishActiveOperation();
     }
   }
@@ -468,12 +390,12 @@ export function createSession({
         "This file changed in the workspace. Reload it before saving.",
       );
     }
-    update({ savingFile: file });
+    update({ operation: { type: "saving", file } });
     try {
       const files = await runtime.saveFile(file, content, expected);
       update({ files, revision: state.revision + 1 });
     } finally {
-      update({ savingFile: null });
+      update({ operation: { type: "idle" } });
     }
   }
 
@@ -482,10 +404,10 @@ export function createSession({
   }
 
   async function reset() {
-    if (state.busy || state.savingFile || !state.linuxReady) {
+    if (!state.canResetProject) {
       return;
     }
-    update({ busy: true });
+    update({ operation: { type: "resetting-project" } });
     try {
       await runtime.reset();
     } catch (cause) {
@@ -538,7 +460,6 @@ export function createSession({
     },
     boot,
     load,
-    selectModel,
     send,
     stop,
     resetChat,

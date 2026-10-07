@@ -49,6 +49,17 @@ Fieldwork uses React with Vite. `index.html` is the entry point; `src/App.tsx` c
 
 `src/fieldwork.ts` creates one session per page. `src/session.ts` owns runtime events, inference requests, commands, and an immutable state snapshot. React subscribes with `useSyncExternalStore`; components never construct the VM or worker. React Strict Mode is enabled. The console stays mounted when hidden, and the iframe document changes only when workspace files change or the user refreshes it, preserving app state during metrics and conversation updates.
 
+Session state stores explicit Linux and model lifecycle phases and the active
+operation. Named handlers in `src/session.ts` update typed session data directly.
+`src/session-state.ts` derives readiness, status text, button labels, and action
+availability for both the controller and React panels. Snapshots are cached until
+stored data changes. Completing a turn preserves model loading and failure
+states; chat reset waits for file saves, and Stop applies only to agent turns.
+
+Progress updates are accepted only while the model is loading. Fixed loading and
+loaded descriptions are derived from the phase and configuration; errors are
+stored separately. Starting a new load clears previous progress and errors.
+
 ## Execution boundaries
 
 - `guest/supervisor.mjs` runs **inside Linux**, embeds the real Pi `Agent` core with Pi's built-in read/write/edit/bash tools, receives UI commands, and writes agent events to `/bridge`. The full Pi CLI remains a research target; the working build uses its smaller SDK path.
