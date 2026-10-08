@@ -66,20 +66,3 @@ select {
     scroll-behavior: auto !important;
   }
 }
-.runtime-status {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  min-height: 24px;
-  font-size: var(--font-size-control);
-}
-.runtime-status .status {
-  flex-shrink: 0;
-}
-@media (max-width: 900px) {
-  .runtime-status {
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-}

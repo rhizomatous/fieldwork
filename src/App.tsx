@@ -7,6 +7,7 @@ import { Header } from "./components/Header.tsx";
 import { InferencePanel } from "./components/InferencePanel.tsx";
 import { LinuxPanel } from "./components/LinuxPanel.tsx";
 import { PreviewPanel } from "./components/PreviewPanel.tsx";
+import { RuntimePanels } from "./components/RuntimePanels.tsx";
 import type { Session } from "./types.ts";
 
 export function App({ session }: { session: Session }) {
@@ -19,7 +20,7 @@ export function App({ session }: { session: Session }) {
       <main className="workbench">
         <div className="left-column">
           <AgentPanel state={state} session={session} />
-          <div className="runtime-panels">
+          <RuntimePanels>
             <InferencePanel state={state} session={session} />
             <LinuxPanel
               state={state}
@@ -28,7 +29,7 @@ export function App({ session }: { session: Session }) {
               consoleOpen={consoleOpen}
               onToggleConsole={() => setConsoleOpen(!consoleOpen)}
             />
-          </div>
+          </RuntimePanels>
         </div>
         <PreviewPanel state={state} session={session} />
       </main>
