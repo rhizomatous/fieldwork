@@ -1,10 +1,10 @@
 import type { MLCEngine } from "@mlc-ai/web-llm";
 import { CreateMLCEngine } from "@mlc-ai/web-llm";
 
-import { workerRequestSchema } from "../shared/contracts.ts";
-import type { WorkerMessage, WorkerRequest } from "../shared/contracts.ts";
-import { errorMessage } from "../shared/errors.ts";
-import { INFERENCE_LIMITS } from "../shared/inference-config.ts";
+import { workerRequestSchema } from "../../shared/contracts.ts";
+import type { WorkerMessage, WorkerRequest } from "../../shared/contracts.ts";
+import { errorMessage } from "../../shared/errors.ts";
+import { INFERENCE_LIMITS } from "../../shared/inference-config.ts";
 
 import { gpuSupportError } from "./gpu-support.ts";
 import { inferenceRequest, parseAction } from "./protocol.ts";

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { gpuSupportError } from "../src/gpu-support.ts";
+import { gpuSupportError } from "./gpu-support.ts";
 
 test("rejects the reported Firefox limit before engine initialization", () => {
   assert.match(

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createSession } from "../src/session.ts";
-import { starter } from "../src/starter.ts";
+import { starter } from "../shared/starter.ts";
+
+import { createSession } from "./session.ts";
 
 function setup(
   gpu = {

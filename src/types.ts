@@ -5,11 +5,11 @@ import type {
   InferenceResult,
   WorkerRequest,
 } from "../shared/contracts.ts";
+import type { ProjectFile, ProjectFiles } from "../shared/project-files.ts";
 
-import type { ProjectFile, ProjectFiles } from "./project-files.ts";
 import type { createSession } from "./session.ts";
 
-export type { ProjectFile, ProjectFiles } from "./project-files.ts";
+export type { ProjectFile, ProjectFiles } from "../shared/project-files.ts";
 
 export type Status = { text: string; kind: "" | "ready" | "busy" | "error" };
 

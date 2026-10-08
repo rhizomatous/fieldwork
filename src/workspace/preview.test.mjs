@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildPreview } from "../src/preview.ts";
-import { starter } from "../src/starter.ts";
+import { starter } from "../../shared/starter.ts";
+
+import { buildPreview } from "./preview.ts";
 
 test("preview uses actual CSS and JS while safely encoding closing script tags", () => {
   const html = buildPreview(

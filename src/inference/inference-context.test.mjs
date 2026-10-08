@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { compactContext, editFeedback } from "../src/inference-context.ts";
+import { compactContext, editFeedback } from "./inference-context.ts";
 
 const user = { role: "user", content: "Add a working button" };
 const call = (id, name, args) => ({

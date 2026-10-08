@@ -3,8 +3,8 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import "./PreviewPanel.css";
 import { Button } from "../design-system/Button.tsx";
 import { EmptyState } from "../design-system/EmptyState.tsx";
-import { buildPreview } from "../preview.ts";
 import type { PanelProps, ProjectFile, SessionState } from "../types.ts";
+import { buildPreview } from "../workspace/preview.ts";
 
 const WorkspaceEditor = lazy(() => import("./WorkspaceEditor.tsx"));
 const tabs = ["Preview", "index.html", "script.js", "style.css"] as const;

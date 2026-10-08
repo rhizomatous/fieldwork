@@ -43,6 +43,31 @@ flowchart LR
     R --> I["Sandboxed app iframe"]
 ```
 
+## Repository layout
+
+| Directory                               | Responsibility                                                                                      |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `src/`                                  | Browser application entry points, session controller, and UI types.                                 |
+| `src/components/`, `src/design-system/` | React panels and reusable UI components.                                                            |
+| `src/inference/`                        | WebGPU worker, model protocol, transcript preparation, and GPU checks.                              |
+| `src/workspace/`                        | Browser-side Linux runtime adapter and preview generation.                                          |
+| `guest/`                                | Pi agent code and image definition for the emulated Alpine Linux VM.                                |
+| `guest/tests/`                          | Host-run Docker integration tests of the guest and filesystem bridge.                               |
+| `shared/`                               | Contracts, configuration, workspace file definitions, and starter content used across environments. |
+| `scripts/`                              | Host-side asset preparation and guest build tools.                                                  |
+
+“Guest” means the Linux VM running inside the browser, as distinct from the
+browser application and the developer's host machine. `guest/supervisor.ts` and
+`guest/provider.ts` run in that VM; its Dockerfile and boot script prepare the
+image. The Docker smoke test runs on the host and drives an isolated guest
+container using fixture model responses.
+
+Unit tests live beside their modules as `*.test.mjs`: browser tests under
+`src/`, shared-contract tests under `shared/`. `npm test` runs both groups without
+Docker. `npm run test:guest` runs the separate Docker smoke test. Code used by
+more than one environment belongs in `shared/`, which must not import browser,
+guest, or build-script implementations.
+
 ## React shell
 
 Fieldwork uses React with Vite. `index.html` is the entry point; `src/App.tsx` composes the chat, inference, Linux, preview, and console panels in `src/components/`. The generated workspace app remains vanilla HTML/CSS/JavaScript.
@@ -64,10 +89,10 @@ stored separately. Starting a new load clears previous progress and errors.
 
 - `guest/supervisor.ts` runs **inside Linux**, embeds the real Pi `Agent` core with Pi's built-in read/write/edit/bash tools, receives UI commands, and writes agent events to `/bridge`. The full Pi CLI remains a research target; the working build uses its smaller SDK path.
 - `guest/provider.ts` is a real Pi custom provider. It writes the model context to `/bridge/request.json` and consumes the corresponding response. Pi validates and executes its normal tools and continues the loop inside Linux.
-- `src/runtime.ts` boots Wanix, mounts the persistent project, and transports files and events. No shell tools execute on the host machine.
-- `src/inference.worker.ts` owns the WebLLM engine and GPU inference. Structured JSON selects one Pi tool or a final response. It does not execute tools.
-- `src/protocol.ts` builds inference requests and validates model actions.
-- `src/preview.ts` assembles the preview from actual workspace files.
+- `src/workspace/linux-runtime.ts` boots Wanix, mounts the persistent project, and transports files and events. No shell tools execute on the host machine.
+- `src/inference/inference.worker.ts` owns the WebLLM engine and GPU inference. Structured JSON selects one Pi tool or a final response. It does not execute tools.
+- `src/inference/protocol.ts` builds inference requests and validates model actions.
+- `src/workspace/preview.ts` assembles the preview from actual workspace files.
 - The preview iframe runs with `allow-scripts` and without `allow-same-origin`. Its CSP blocks network requests. The initial project supports `index.html`, `style.css`, and `script.js`, not arbitrary assets, npm dependencies, or ES module graphs.
 
 No guest network device is configured. Model downloads are the main external requests after loading the static app. Full offline reload support is not implemented: caching weights alone does not cache every application asset.
@@ -77,7 +102,7 @@ No guest network device is configured. Model downloads are the main external req
 Model metadata and token limits live in `shared/inference-config.ts`, used by
 the UI, inference worker, and guest provider. Rebuild the guest with
 `npm run guest` after changing shared limits. The supported workspace file list
-lives in `src/project-files.ts`; TypeScript derives `ProjectFile` from it.
+lives in `shared/project-files.ts`; TypeScript derives `ProjectFile` from it.
 
 - Wanix and extras: `0.4.0-rc2`. The npm default tags differ; pin the explicit version.
 - Wanix's standard Go WASM build is used. The smaller TinyGo build exhausted its heap while unpacking the Pi filesystem in testing.
@@ -213,13 +238,13 @@ The title-bar Theme control offers System (the default), Light, and Dark. The se
 
 ## TypeScript
 
-The browser application, inference worker, shared contracts, and Linux guest use strict TypeScript. Vite serves `.ts` and `.tsx` directly; esbuild bundles the guest into JavaScript for Node inside Linux. The Node scripts in `scripts/` run as TypeScript using Node's native type stripping (Node 22.18+ or a newer supported release). Unit tests remain JavaScript and import TypeScript directly. `build-guest.sh` remains shell.
+The browser application, inference worker, shared contracts, and Linux guest use strict TypeScript. Vite serves `.ts` and `.tsx` directly; esbuild bundles the guest into JavaScript for Node inside Linux. The Node scripts in `scripts/` and the guest smoke test run as TypeScript using Node's native type stripping (Node 22.18+ or a newer supported release). Unit tests remain JavaScript and import TypeScript directly. `build-guest.sh` remains shell.
 
 `shared/contracts.ts` defines Zod schemas and infers the corresponding TypeScript types. Commands, guest events, inference requests/results, worker messages, and model actions are validated at their receiving boundaries. Tool-specific arguments remain Pi's responsibility. `src/types.ts` contains UI/session types and the typed runtime/worker interfaces.
 
 `guest/` is an npm workspace. Run `npm ci` at the repository root to install both the app and guest dependencies from one lockfile. Type checking and guest bundling use normal package resolution; neither installs dependencies. The guest still ships as a JavaScript bundle inside the Linux image.
 
-`npm run typecheck` checks browser code, guest code, and Node scripts. `tsconfig.scripts.json` uses strict checking, NodeNext module resolution, and `erasableSyntaxOnly` so scripts run directly without a compiler or additional runner. `npm run check` also runs formatting, lint, unit tests, and the production build.
+`npm run typecheck` checks browser code, guest code, and Node scripts. `scripts/tsconfig.json` uses strict checking, NodeNext module resolution, and `erasableSyntaxOnly` so scripts run directly without a compiler or additional runner. The guest uses `guest/tsconfig.json`; its host-run smoke test extends the script settings in `guest/tests/tsconfig.json`. These conventional filenames let editors discover the same settings used by the command-line checks. `npm run check` also runs formatting, lint, unit tests, and the production build.
 
 ## Workspace file editors
 

@@ -9,7 +9,7 @@ import {
   parseInferenceResult,
   workerMessageSchema,
   workerRequestSchema,
-} from "../shared/contracts.ts";
+} from "./contracts.ts";
 
 const action = { type: "message", text: "Done" };
 

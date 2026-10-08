@@ -2,7 +2,7 @@ import type {
   InferenceContext,
   TranscriptMessage,
   ToolCall,
-} from "../shared/contracts.ts";
+} from "../../shared/contracts.ts";
 
 // Pi retains the complete conversation. The small browser model only needs
 // recent dialogue and the current turn's unsuperseded file contents.

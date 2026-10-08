@@ -36,20 +36,20 @@
   },
   "overrides": [
     {
-      "files": ["scripts/**", "guest/**", "tests/**", "vite.config.js"],
+      "files": ["scripts/**", "guest/**", "**/*.test.mjs", "vite.config.js"],
       "env": {
         "node": true,
         "browser": false
       }
     },
     {
-      "files": ["src/inference.worker.ts"],
+      "files": ["src/inference/inference.worker.ts"],
       "env": {
         "worker": true
       }
     },
     {
-      "files": ["src/session.ts", "src/inference.worker.ts"],
+      "files": ["src/session.ts", "src/inference/inference.worker.ts"],
       "rules": {
         "unicorn/require-post-message-target-origin": "off"
       }

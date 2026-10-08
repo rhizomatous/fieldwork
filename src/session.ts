@@ -1,8 +1,7 @@
 import { workerMessageSchema } from "../shared/contracts.ts";
 import { MODEL } from "../shared/inference-config.ts";
 
-import { gpuSupportError } from "./gpu-support.ts";
-import { buildPreview } from "./preview.ts";
+import { gpuSupportError } from "./inference/gpu-support.ts";
 import { deriveSessionState } from "./session-state.ts";
 import type {
   AgentEvent,
@@ -14,6 +13,7 @@ import type {
   SessionData,
   WorkerMessage,
 } from "./types.ts";
+import { buildPreview } from "./workspace/preview.ts";
 
 // Owns one VM and one worker for the page lifetime. React only subscribes;
 // mounting, unmounting, and Strict Mode never construct or restart either one.

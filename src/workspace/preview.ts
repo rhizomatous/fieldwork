@@ -1,5 +1,5 @@
-import { PROJECT_FILES } from "./project-files.ts";
-import type { ProjectFiles } from "./types.ts";
+import { PROJECT_FILES } from "../../shared/project-files.ts";
+import type { ProjectFiles } from "../types.ts";
 
 export function buildPreview(files: ProjectFiles, channel = ""): string {
   for (const file of PROJECT_FILES) {

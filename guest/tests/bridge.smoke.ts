@@ -9,15 +9,15 @@ import path from "node:path";
 import {
   inferenceRequestSchema,
   parseAgentEvent,
-} from "../shared/contracts.ts";
+} from "../../shared/contracts.ts";
 import type {
   Action,
   Command,
   InferenceRequest,
   AgentEvent,
-} from "../shared/contracts.ts";
-import { isMissingFile } from "../shared/errors.ts";
-import { starter } from "../src/starter.ts";
+} from "../../shared/contracts.ts";
+import { isMissingFile } from "../../shared/errors.ts";
+import { starter } from "../../shared/starter.ts";
 
 const root = await fs.mkdtemp(path.join(os.tmpdir(), "fieldwork-smoke-"));
 const bridge = path.join(root, "bridge"),

@@ -1,13 +1,13 @@
-import { actionSchema } from "../shared/contracts.ts";
+import { actionSchema } from "../../shared/contracts.ts";
 import type {
   InferenceContext,
   InferenceTool,
   TranscriptMessage,
-} from "../shared/contracts.ts";
+} from "../../shared/contracts.ts";
+import { PROJECT_FILES } from "../../shared/project-files.ts";
+import type { ProjectFile } from "../types.ts";
 
 import { compactContext, editFeedback } from "./inference-context.ts";
-import { PROJECT_FILES } from "./project-files.ts";
-import type { ProjectFile } from "./types.ts";
 
 export function inferenceRequest(context: InferenceContext) {
   const tools = (context.tools || []).filter((tool) =>

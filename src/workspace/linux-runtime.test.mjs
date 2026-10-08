@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { LinuxRuntime } from "../src/runtime.ts";
+import { LinuxRuntime } from "./linux-runtime.ts";
 
 test("new session waits for its matching guest acknowledgement", async () => {
   const runtime = new LinuxRuntime();

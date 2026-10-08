@@ -4,17 +4,16 @@ import {
   inferenceResultSchema,
   parseAgentEvent,
   requestIdSchema,
-} from "../shared/contracts.ts";
+} from "../../shared/contracts.ts";
 import type {
   AgentEvent,
   CommandInput,
   InferenceResult,
-} from "../shared/contracts.ts";
-import { errorMessage } from "../shared/errors.ts";
-
-import { PROJECT_FILES } from "./project-files.ts";
-import { starter } from "./starter.ts";
-import type { ProjectFile, ProjectFiles, RuntimeEvents } from "./types.ts";
+} from "../../shared/contracts.ts";
+import { errorMessage } from "../../shared/errors.ts";
+import { PROJECT_FILES } from "../../shared/project-files.ts";
+import { starter } from "../../shared/starter.ts";
+import type { ProjectFile, ProjectFiles, RuntimeEvents } from "../types.ts";
 
 // The Wanix custom element supplies this filesystem after its ready event.
 interface WanixFilesystem {
