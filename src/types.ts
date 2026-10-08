@@ -13,7 +13,7 @@ export type { ProjectFile, ProjectFiles } from "../shared/project-files.ts";
 
 export type Status = { text: string; kind: "" | "ready" | "busy" | "error" };
 
-export type ChatMessage = {
+type ChatMessage = {
   id: number;
   text: string;
   who?: string;
@@ -35,7 +35,7 @@ export type ModelPhase =
   | "load-error"
   | "worker-error"
   | "unsupported";
-export type SessionOperation =
+type SessionOperation =
   | { type: "idle" }
   | { type: "working" }
   | {
@@ -90,7 +90,6 @@ export type PanelProps = { state: SessionState; session: Session };
 export type {
   AgentEvent,
   InferenceRequest,
-  InferenceResult,
   WorkerMessage,
 } from "../shared/contracts.ts";
 

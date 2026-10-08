@@ -230,7 +230,8 @@ The title-bar Theme control offers System (the default), Light, and Dark. The se
 - `npm run format:check` checks formatting without writing files.
 - `npm run lint` runs Oxlint and fails on any finding.
 - `npm run lint:fix` applies safe lint fixes; remaining findings need review.
-- `npm run check` runs formatting checks, lint, unit tests, and the production build.
+- `npm run knip` scans unused files, exports, types, dependencies, and runtime import cycles.
+- `npm run check` runs formatting checks, lint, Knip, type checks, unit tests, and the production build.
 
 [Oxfmt](https://oxc.rs/docs/guide/usage/formatter/config.html) uses an 80-column layout, two-space indentation, double quotes, and semicolons. Oxfmt alphabetizes imports within groups (Node built-ins, packages, internal modules, parent modules, and sibling modules), separated by blank lines. Side-effect imports, including CSS, stay in their original positions to preserve initialization and cascade order. Oxlint enforces a blank line after the import block. Generated assets, dependencies, caches, and lockfiles are excluded from formatting.
 
@@ -251,3 +252,17 @@ The browser application, inference worker, shared contracts, and Linux guest use
 The preview bar includes Preview, index.html, script.js, and style.css tabs. Start Linux to access the real workspace files. CodeMirror is loaded on demand when a file editor is opened, with HTML/CSS/JavaScript highlighting, line numbers, undo, and search. Editor colors use the Fieldwork theme tokens and update immediately with System/Light/Dark mode.
 
 Edits remain drafts until **Save** (or Cmd/Ctrl+S). Saving writes through Wanix to the shared project and refreshes Preview; switching tabs preserves the live preview and each editor's draft and undo history. Drafts are not persisted across page reloads. While the agent is working, editors are read-only. If an agent edit or reset changes a file with an unsaved draft, saving is blocked until you reload that file, so neither version is silently overwritten. Save failures retain the draft and display an error.
+
+## Unused code and dependency checks
+
+`npm run knip` scans the browser app, host scripts, colocated unit tests, and
+Linux guest workspace. A second pass enables Knip's opt-in cycle report. It
+checks runtime import cycles, including dynamic
+imports; type-only references are not runtime cycles. The scan runs as part of
+`npm run check` and fails on findings or stale configuration exceptions.
+
+`knip.jsonc` declares entry points that are launched indirectly (the worker,
+guest supervisor, and esbuild script). Its two dependency exceptions are
+intentional: asset preparation copies Wanix files instead of importing them,
+and the guest bundle requires `@opentelemetry/api` to resolve Mistral SDK imports
+pulled in by Pi. Keep these comments current when changing the build.

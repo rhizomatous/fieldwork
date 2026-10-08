@@ -18,7 +18,8 @@
     "format:check": "oxfmt --check .",
     "lint": "oxlint --deny-warnings .",
     "lint:fix": "oxlint --fix --deny-warnings .",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
+    "knip": "knip --treat-config-hints-as-errors && knip --cycles",
+    "check": "npm run format:check && npm run lint && npm run knip && npm run typecheck && npm test && npm run build",
     "typecheck": "tsc --noEmit && tsc -p guest && tsc -p scripts && tsc -p guest/tests"
   },
   "dependencies": {
@@ -42,6 +43,7 @@
     "@vitejs/plugin-react": "^5.2.0",
     "@webgpu/types": "0.1.74",
     "esbuild": "0.28.2",
+    "knip": "6.40.0",
     "oxfmt": "0.72.0",
     "oxlint": "1.87.0",
     "typescript": "7.0.2",

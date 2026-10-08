@@ -42,7 +42,7 @@ const contentBlockSchema = z.discriminatedUnion("type", [
   }),
 ]);
 export type ToolCall = z.infer<typeof toolCallSchema>;
-export const transcriptMessageSchema = z.union([
+const transcriptMessageSchema = z.union([
   z.object({
     role: z.enum(["user", "assistant"]),
     content: z.union([z.string(), z.array(contentBlockSchema)]),
@@ -65,7 +65,7 @@ const toolSchema = z.object({
   }),
 });
 export type InferenceTool = z.infer<typeof toolSchema>;
-export const inferenceContextSchema = z.object({
+const inferenceContextSchema = z.object({
   systemPrompt: z.string().optional(),
   messages: z.array(transcriptMessageSchema),
   tools: z.array(toolSchema).optional(),
@@ -139,7 +139,7 @@ export const workerMessageSchema = z.union([
 export type WorkerMessage = z.infer<typeof workerMessageSchema>;
 
 // Only the subset of Pi events consumed by the browser crosses this boundary.
-export const agentEventSchema = z.discriminatedUnion("type", [
+const agentEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("boot"), message: z.string() }),
   z.object({ type: z.literal("diagnostic"), message: z.string() }),
   z.object({ type: z.literal("fatal"), message: z.string() }),
