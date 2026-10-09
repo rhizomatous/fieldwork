@@ -78,7 +78,8 @@ export class LinuxRuntime extends EventTarget {
   }
 
   private async initializeNamespace(mount: HTMLElement) {
-    const response = await fetch("/agent-rootfs.tgz", { method: "HEAD" });
+    const base = import.meta.env.BASE_URL;
+    const response = await fetch(`${base}agent-rootfs.tgz`, { method: "HEAD" });
     if (
       !response.ok ||
       response.headers.get("content-type")?.includes("text/html")
@@ -91,7 +92,7 @@ export class LinuxRuntime extends EventTarget {
       await new Promise((resolve, reject) => {
         const script = document.createElement("script");
         script.type = "module";
-        script.src = "/runtime/wanix.min.js";
+        script.src = `${base}runtime/wanix.min.js`;
         script.onload = resolve;
         script.onerror = () =>
           reject(
@@ -104,8 +105,8 @@ export class LinuxRuntime extends EventTarget {
     }
     this.system = document.createElement("wanix-namespace") as WanixNamespace;
     this.system.id = "agent-linux";
-    this.system.setAttribute("wasm", "/runtime/wanix.wasm");
-    this.system.innerHTML = `<wanix-bind dst="." type="archive" src="/agent-rootfs.tgz"></wanix-bind><wanix-bind dst="#vm/v86" type="archive" src="/runtime/v86.tgz"></wanix-bind>`;
+    this.system.setAttribute("wasm", `${base}runtime/wanix.wasm`);
+    this.system.innerHTML = `<wanix-bind dst="." type="archive" src="${base}agent-rootfs.tgz"></wanix-bind><wanix-bind dst="#vm/v86" type="archive" src="${base}runtime/v86.tgz"></wanix-bind>`;
     const ready = new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(
         () =>

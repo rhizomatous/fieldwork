@@ -11,7 +11,7 @@ export function Header() {
   const about = useRef<HTMLDialogElement>(null);
   return (
     <header className="app-header">
-      <Wordmark />
+      <Wordmark href={import.meta.env.BASE_URL} />
       <div className="header-actions">
         <Button
           variant="secondary"

@@ -69,9 +69,4 @@ After preparing the assets and Linux image above:
 npm run build
 ```
 
-Serve `dist/` statically over HTTPS. Configure these response headers:
-
-```text
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Embedder-Policy: credentialless
-```
+Serve `dist/` statically over HTTPS.
