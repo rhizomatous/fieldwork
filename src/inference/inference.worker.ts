@@ -45,7 +45,7 @@ async function loadModel(model: string) {
       powerPreference: "high-performance",
     });
     const compatibilityError = gpuSupportError(adapter);
-    
+
     if (compatibilityError) {
       throw new Error(compatibilityError);
     }

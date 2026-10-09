@@ -95,7 +95,7 @@ export function PreviewPanel({ state, session }: PanelProps) {
     state.files,
     state.previewVersion,
   );
-  
+
   return (
     <section className="preview-panel" aria-label="Workspace">
       <div className="pane-heading">

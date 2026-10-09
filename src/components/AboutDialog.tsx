@@ -28,9 +28,9 @@ export function AboutDialog({
       </div>
       <div className="about-copy">
         <p>
-          Fieldwork is a tech demo from{" "}
+          Fieldwork is an experiment from{" "}
           <a target="_blank" rel="noreferrer" href="https://rhizomato.us/">
-            Atelier Rhizome
+            Rhizome
           </a>
           . It demonstrates{" "}
           <strong>
