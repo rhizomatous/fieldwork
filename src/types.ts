@@ -52,17 +52,11 @@ export interface SessionData {
   modelError: string | null;
   progress: number;
   progressMessage: string;
-  gpuLabel: string;
-  storage: string;
   messages: ChatMessage[];
   diagnostics: string;
   files: ProjectFiles | null;
-  revision: number;
   previewVersion: number;
-  ttft: string;
   speed: string;
-  prefill: string;
-  inferenceNote: string;
 }
 export interface SessionState extends SessionData {
   readonly savingFile: ProjectFile | null;
@@ -103,7 +97,6 @@ export interface RuntimeEvents {
   event: AgentEvent;
   diagnostic: string;
   fatal: string;
-  storage: string;
   snapshot: ProjectFiles;
   inference: InferenceRequest;
 }

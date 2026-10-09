@@ -9,22 +9,22 @@
         "src/inference/inference.worker.ts",
         "src/**/*.test.mjs",
         "shared/**/*.test.mjs",
-        "scripts/bundle-agent.ts"
+        "scripts/bundle-agent.ts",
       ],
       "project": [
         "src/**/*.{ts,tsx,mjs}",
         "shared/**/*.{ts,mjs}",
-        "scripts/**/*.ts"
+        "scripts/**/*.ts",
       ],
       // prepare-assets.ts copies Wanix's JS and WASM files instead of importing it.
-      "ignoreDependencies": ["wanix"]
+      "ignoreDependencies": ["wanix"],
     },
     "guest": {
       // The supervisor is bundled by esbuild and launched by the Linux boot script.
       "entry": ["supervisor.ts", "tests/bridge.smoke.ts"],
       "project": ["**/*.ts"],
       // Pi pulls in Mistral SDK observability imports; esbuild needs this optional peer.
-      "ignoreDependencies": ["@opentelemetry/api"]
-    }
-  }
+      "ignoreDependencies": ["@opentelemetry/api"],
+    },
+  },
 }

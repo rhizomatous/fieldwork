@@ -127,12 +127,6 @@ export const workerMessageSchema = z.union([
   }),
   z.object({ type: z.literal("loaded") }),
   z.object({ type: z.literal("load-error"), error: z.string() }),
-  z.object({
-    type: z.literal("tokens"),
-    id: requestIdSchema,
-    firstToken: z.number().nonnegative().optional(),
-    characters: z.number().int().nonnegative(),
-  }),
   successSchema.extend({ type: z.literal("result") }),
   failureSchema.extend({ type: z.literal("result") }),
 ]);

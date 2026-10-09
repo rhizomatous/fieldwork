@@ -132,9 +132,7 @@ export class LinuxRuntime extends EventTarget {
     try {
       await this.root.makeDirAll("#web/opfs/browser-agent-project");
       await this.root.bind("#web/opfs/browser-agent-project", "project");
-      this.emit("storage", "OPFS · saved on this device");
     } catch (error) {
-      this.emit("storage", "Memory only · export before closing");
       this.emit(
         "diagnostic",
         `Persistence unavailable: ${errorMessage(error)}`,

@@ -67,8 +67,6 @@ async function handleRequest(data: WorkerRequest) {
   }
   generating = true;
   cancelled = false;
-  const start = performance.now();
-  let firstToken;
   let text = "";
   let usage;
   let finishReason;
@@ -88,20 +86,10 @@ async function handleRequest(data: WorkerRequest) {
         throw new Error("Stopped");
       }
       finishReason = chunk.choices[0]?.finish_reason || finishReason;
-      const delta = chunk.choices[0]?.delta.content || "";
-      if (delta && firstToken === undefined) {
-        firstToken = performance.now() - start;
-      }
-      text += delta;
+      text += chunk.choices[0]?.delta.content || "";
       if (chunk.usage) {
         usage = chunk.usage;
       }
-      send({
-        type: "tokens",
-        id: data.id,
-        characters: text.length,
-        firstToken,
-      });
     }
     if (cancelled) {
       throw new Error("Stopped");

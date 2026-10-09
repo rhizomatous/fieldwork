@@ -73,6 +73,7 @@ test("a prompt routes inference and edits while metrics leave the preview files 
 
   assert.match(t.session.getSnapshot().loadDetail, /8,192-token context/);
 
+  t.emit("snapshot", { ...starter });
   await t.session.send("Change the title");
 
   assert.deepEqual(t.commands, [
@@ -85,12 +86,6 @@ test("a prompt routes inference and edits while metrics leave the preview files 
   t.emit("inference", { id: "request-1", context: { messages: [] } });
 
   assert.equal(t.workerMessages.at(-1).type, "generate");
-
-  await t.worker.onmessage({
-    data: { type: "tokens", id: "request-1", firstToken: 120, characters: 12 },
-  });
-
-  assert.equal(t.session.getSnapshot().files, files);
 
   await t.worker.onmessage({
     data: {
@@ -107,10 +102,14 @@ test("a prompt routes inference and edits while metrics leave the preview files 
       type: "result",
       id: "request-1",
       action: { type: "message", text: "action" },
+      usage: { input: 10, output: 20, totalTokens: 30 },
+      metrics: { decode_tokens_per_s: 12.34 },
     },
   });
 
   assert.equal(t.responses[0].id, "request-1");
+  assert.equal(t.session.getSnapshot().speed, "12.3");
+  assert.equal(t.session.getSnapshot().files, files);
 
   await t.worker.onmessage({
     data: {
@@ -125,7 +124,7 @@ test("a prompt routes inference and edits while metrics leave the preview files 
   t.emit("event", { type: "agent_end" });
 
   assert.equal(t.session.getSnapshot().busy, false);
-  assert.equal(t.session.getSnapshot().revision, 1);
+  assert.equal(t.session.getSnapshot().files["index.html"], "<h1>Updated</h1>");
   assert.ok(
     !t.session
       .getSnapshot()

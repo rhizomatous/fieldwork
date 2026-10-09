@@ -13,7 +13,6 @@ import type {
   SessionData,
   WorkerMessage,
 } from "./types.ts";
-import { buildPreview } from "./workspace/preview.ts";
 
 // Owns one VM and one worker for the page lifetime. React only subscribes;
 // mounting, unmounting, and Strict Mode never construct or restart either one.
@@ -39,17 +38,11 @@ export function createSession({
     modelError: null,
     progressMessage: "",
     progress: 0,
-    gpuLabel: "Checking WebGPU…",
-    storage: "Workspace awaiting Linux",
     messages: [],
     diagnostics: "",
     files: null,
-    revision: 0,
     previewVersion: 0,
-    ttft: "—",
     speed: "—",
-    prefill: "—",
-    inferenceNote: "No API key. No inference server.",
   };
 
   let state = deriveSessionState(sessionData);
@@ -180,7 +173,7 @@ export function createSession({
       if (state.busy) {
         turnChanged = true;
       }
-      update({ files, revision: state.revision + 1 });
+      update({ files });
     }
   }
 
@@ -216,29 +209,16 @@ export function createSession({
       update({ modelPhase: "load-error", modelError: data.error });
     }
 
-    if (data.type === "tokens" && data.id === activeRequest) {
-      update({
-        ...(data.firstToken !== undefined
-          ? { ttft: (data.firstToken / 1000).toFixed(1) }
-          : {}),
-        inferenceNote: `${data.characters.toLocaleString()} characters generated`,
-      });
-    }
-
     if (data.type === "result" && data.id === activeRequest) {
       activeRequest = null;
       const speed = data.metrics?.decode_tokens_per_s;
       update({
         ...(data.usage
           ? {
-              prefill: data.usage.input.toLocaleString(),
               speed: Number.isFinite(speed) ? speed!.toFixed(1) : "—",
             }
           : {}),
         modelPhase: "ready",
-        inferenceNote: data.error
-          ? "Generation interrupted or failed"
-          : "Inference completed on this device",
       });
       try {
         await runtime.respond(data);
@@ -275,9 +255,6 @@ export function createSession({
 
       update({
         gpuAvailable: !compatibilityError,
-        gpuLabel: adapter
-          ? `WebGPU available${adapter.info?.architecture ? " · " + adapter.info.architecture : ""}`
-          : "WebGPU unavailable",
         ...(compatibilityError
           ? {
               modelPhase: "unsupported" as const,
@@ -290,7 +267,6 @@ export function createSession({
       update({
         modelPhase: "unsupported",
         gpuAvailable: false,
-        gpuLabel: "WebGPU unavailable",
         modelError: error.message,
       });
     }
@@ -395,7 +371,7 @@ export function createSession({
     update({ operation: { type: "saving", file } });
     try {
       const files = await runtime.saveFile(file, content, expected);
-      update({ files, revision: state.revision + 1 });
+      update({ files });
     } finally {
       update({ operation: { type: "idle" } });
     }
@@ -420,29 +396,12 @@ export function createSession({
     }
   }
 
-  function exportApp() {
-    if (!state.files) {
-      return;
-    }
-    const url = URL.createObjectURL(
-      new Blob([buildPreview(state.files)], { type: "text/html" }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "fieldwork-app.html";
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
   runtime.addEventListener("event", ({ detail }) => handleAgentEvent(detail));
   runtime.addEventListener("diagnostic", ({ detail }) =>
     appendDiagnostic(detail),
   );
   runtime.addEventListener("fatal", ({ detail }) =>
     handleRuntimeFailure(detail),
-  );
-  runtime.addEventListener("storage", ({ detail }) =>
-    update({ storage: detail }),
   );
   runtime.addEventListener("snapshot", ({ detail }) => handleSnapshot(detail));
   runtime.addEventListener("inference", ({ detail }) =>
@@ -476,6 +435,5 @@ export function createSession({
     saveFile,
     refresh,
     reset,
-    exportApp,
   };
 }

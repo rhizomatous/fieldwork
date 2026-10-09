@@ -114,11 +114,11 @@ lives in `shared/project-files.ts`; TypeScript derives `ProjectFile` from it.
 ## Current limitations
 
 - Cold boot is still emulated and takes time. The first full-CLI image was 58 MiB and loaded too slowly through 9P. The current build bundles Pi core and its coding tools into a 3.9 MiB JavaScript file, reducing the compressed guest to 36 MiB. Further trimming is possible.
-- Model output streams into diagnostics/metrics, but tool actions are buffered until a complete valid JSON object is available. Pi's final text is delivered after generation.
+- Model output is buffered in the worker until a complete valid JSON object is available. Pi's final text is delivered after generation.
 - Each user turn is limited to ten model calls. The provider times out after four minutes per call. Small models can still produce poor edits or fail to follow a task.
 - Context is limited to 8K tokens. The model sees the current turn and up to four recent user/final-assistant messages (1,000 characters each); previous tool payloads and failed patch proposals are omitted. Oversized files or long individual turns can still exceed the window. Reset chat starts fresh.
 - Stopping aborts the agent and model but does not undo completed writes. The three-file preview refreshes after tool completion; multi-file changes are not transactional.
-- Refresh, reset, and export operate on the three supported files. Additional file types and external dependencies are outside this first version.
+- Refresh and reset operate on the three supported files. Additional file types and external dependencies are outside this first version.
 - The pinned older Pi dependency tree reported eight high-severity npm findings at build time. The guest has no network device; the app dependency audit was clean. Review/upgrade the agent dependency tree before public distribution.
 
 ## Validation
@@ -266,3 +266,7 @@ guest supervisor, and esbuild script). Its two dependency exceptions are
 intentional: asset preparation copies Wanix files instead of importing them,
 and the guest bundle requires `@opentelemetry/api` to resolve Mistral SDK imports
 pulled in by Pi. Keep these comments current when changing the build.
+
+Knip does not detect unused properties on session state or returned API objects.
+When removing a UI consumer, also review its state fields, update handlers, and
+returned session methods, and remove any that no longer serve a caller.
