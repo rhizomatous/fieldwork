@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { starter } from "../shared/starter.ts";
 
+import { deriveSessionState } from "./session-state.ts";
 import { createSession } from "./session.ts";
 
 function setup(
@@ -44,6 +45,35 @@ function setup(
     boots: () => boots,
   };
 }
+
+test("operation locks distinguish agent work from workspace-only changes", () => {
+  const data = {
+    ...setup().session.getSnapshot(),
+    linuxPhase: "ready",
+    modelPhase: "ready",
+    gpuAvailable: true,
+  };
+  for (const [type, agentLocked, workspaceLocked, canLoadModel, canStop] of [
+    ["idle", false, false, true, false],
+    ["prompting", true, true, false, true],
+    ["working", true, true, false, true],
+    ["saving", false, true, true, false],
+    ["resetting-chat", true, true, false, false],
+    ["resetting-project", false, true, true, false],
+  ]) {
+    const state = deriveSessionState({
+      ...data,
+      operation: type === "saving" ? { type, file: "style.css" } : { type },
+    });
+    assert.equal(state.agentLocked, agentLocked, type);
+    assert.equal(state.workspaceLocked, workspaceLocked, type);
+    assert.equal(state.canLoadModel, canLoadModel, type);
+    assert.equal(state.canStop, canStop, type);
+    assert.equal(state.canSend, !workspaceLocked, type);
+    assert.equal(state.canResetChat, !workspaceLocked, type);
+    assert.equal(state.canResetProject, !workspaceLocked, type);
+  }
+});
 
 test("subscriptions can detach and reattach without losing the session or booting twice", async () => {
   const t = setup();
@@ -123,7 +153,7 @@ test("a prompt routes inference and edits while metrics leave the preview files 
   t.emit("snapshot", { ...starter, "index.html": "<h1>Updated</h1>" });
   t.emit("event", { type: "agent_end" });
 
-  assert.equal(t.session.getSnapshot().busy, false);
+  assert.equal(t.session.getSnapshot().workspaceLocked, false);
   assert.equal(t.session.getSnapshot().files["index.html"], "<h1>Updated</h1>");
   assert.ok(
     !t.session
@@ -150,7 +180,7 @@ test("stopping cancels both inference and the guest agent", async () => {
 
   t.emit("event", { type: "agent_end" });
 
-  assert.equal(t.session.getSnapshot().busy, false);
+  assert.equal(t.session.getSnapshot().workspaceLocked, false);
 });
 
 test("worker failure returns an error to a pending guest request and unlocks the UI", async () => {
@@ -167,7 +197,7 @@ test("worker failure returns an error to a pending guest request and unlocks the
   t.worker.onerror({ message: "GPU lost" });
 
   assert.deepEqual(t.responses, [{ id: "failed", error: "GPU lost" }]);
-  assert.equal(t.session.getSnapshot().busy, false);
+  assert.equal(t.session.getSnapshot().workspaceLocked, false);
   assert.equal(t.session.getSnapshot().modelReady, false);
   assert.equal(t.session.getSnapshot().modelStatus.text, "Worker failed");
 
@@ -202,7 +232,7 @@ test("reset chat clears the conversation but preserves workspace files and loade
   assert.deepEqual(t.session.getSnapshot().messages, []);
   assert.equal(t.session.getSnapshot().files, files);
   assert.equal(t.session.getSnapshot().modelReady, true);
-  assert.equal(t.session.getSnapshot().busy, false);
+  assert.equal(t.session.getSnapshot().workspaceLocked, false);
 });
 
 test("reset chat cannot interrupt an active turn", async () => {
@@ -216,7 +246,7 @@ test("reset chat cannot interrupt an active turn", async () => {
   t.commands.length = 0;
   await t.session.resetChat();
   assert.deepEqual(t.commands, []);
-  assert.equal(t.session.getSnapshot().busy, true);
+  assert.equal(t.session.getSnapshot().workspaceLocked, true);
 });
 
 test("editor saves update preview and block concurrent prompts and reset", async () => {
@@ -383,14 +413,14 @@ test("model loading can retry and generation returns to ready without ending the
     },
   });
   assert.equal(t.session.getSnapshot().modelPhase, "ready");
-  assert.equal(t.session.getSnapshot().busy, true);
+  assert.equal(t.session.getSnapshot().workspaceLocked, true);
   assert.equal(t.session.getSnapshot().canStop, true);
   t.emit("event", { type: "agent_end" });
   assert.equal(t.session.getSnapshot().canSend, true);
   assert.equal(t.session.getSnapshot().canStop, false);
 });
 
-test("chat reset stays busy until acknowledged and preserves a concurrent model load", async () => {
+test("chat reset stays locked until acknowledged and preserves a concurrent model load", async () => {
   const t = setup();
   await Promise.resolve();
   await t.session.boot({});
@@ -403,15 +433,44 @@ test("chat reset stays busy until acknowledged and preserves a concurrent model 
     });
   const reset = t.session.resetChat();
   assert.equal(t.session.getSnapshot().resettingChat, true);
-  assert.equal(t.session.getSnapshot().busy, true);
+  assert.equal(t.session.getSnapshot().agentStatus.text, "Resetting chat");
+  assert.equal(t.session.getSnapshot().workspaceLocked, true);
   assert.equal(t.session.getSnapshot().canStop, false);
   assert.equal(t.session.getSnapshot().canSend, false);
   acknowledge();
   await reset;
   assert.equal(t.session.getSnapshot().resettingChat, false);
-  assert.equal(t.session.getSnapshot().busy, false);
+  assert.equal(t.session.getSnapshot().workspaceLocked, false);
   assert.equal(t.session.getSnapshot().modelPhase, "loading");
   assert.equal(t.session.getSnapshot().modelStatus.text, "Loading");
+});
+
+test("model loading and worker failure cannot release a pending project reset", async () => {
+  const t = setup();
+  await t.session.boot({});
+  t.emit("event", { type: "ready" });
+  let complete;
+  t.runtime.reset = () =>
+    new Promise((resolve) => {
+      complete = resolve;
+    });
+  const reset = t.session.reset();
+
+  assert.equal(t.session.getSnapshot().agentLocked, false);
+  assert.equal(t.session.getSnapshot().workspaceLocked, true);
+  t.session.load();
+  assert.equal(t.session.getSnapshot().modelPhase, "loading");
+  assert.equal(await t.session.send("Change the title"), false);
+  await t.session.resetChat();
+  assert.deepEqual(t.commands, []);
+
+  t.worker.onerror({ message: "GPU lost" });
+  assert.equal(t.session.getSnapshot().workspaceLocked, true);
+  assert.equal(t.session.getSnapshot().operation.type, "resetting-project");
+  complete();
+  await reset;
+  assert.equal(t.session.getSnapshot().workspaceLocked, false);
+  assert.equal(t.session.getSnapshot().modelPhase, "worker-error");
 });
 
 test("worker failure during a file save does not release the workspace lock", async () => {

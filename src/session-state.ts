@@ -108,7 +108,10 @@ export function deriveSessionState(data: SessionData): SessionState {
   const savingFile =
     data.operation.type === "saving" ? data.operation.file : null;
   const idle = data.operation.type === "idle";
-  const busy = !idle && data.operation.type !== "saving";
+  const agentRunning =
+    data.operation.type === "prompting" || data.operation.type === "working";
+  const agentLocked = agentRunning || data.operation.type === "resetting-chat";
+  const workspaceLocked = !idle;
   return {
     ...data,
     ...linux,
@@ -118,22 +121,25 @@ export function deriveSessionState(data: SessionData): SessionState {
     modelReady,
     loading,
     savingFile,
-    busy,
+    agentLocked,
+    workspaceLocked,
     bootStarted: data.linuxPhase !== "off",
     resettingChat: data.operation.type === "resetting-chat",
     agentStatus:
-      data.operation.type === "working" && linuxReady
-        ? { text: "Working", kind: "busy" }
+      agentLocked && linuxReady
+        ? {
+            text: agentRunning ? "Working" : "Resetting chat",
+            kind: "busy",
+          }
         : linux.agentStatus,
-    canSend: idle && linuxReady && modelReady,
+    canSend: !workspaceLocked && linuxReady && modelReady,
     canLoadModel:
-      !busy &&
+      !agentLocked &&
       !loading &&
       data.gpuAvailable &&
       data.modelPhase !== "worker-error",
-    canResetChat: idle,
-    canResetProject: idle && linuxReady,
-    canStop:
-      data.operation.type === "prompting" || data.operation.type === "working",
+    canResetChat: !workspaceLocked,
+    canResetProject: !workspaceLocked && linuxReady,
+    canStop: agentRunning,
   };
 }

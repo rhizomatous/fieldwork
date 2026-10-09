@@ -67,7 +67,10 @@ export function createSession({
     activeRequest = null;
     update({
       operation:
-        state.operation.type === "saving" ? state.operation : { type: "idle" },
+        state.operation.type === "saving" ||
+        state.operation.type === "resetting-project"
+          ? state.operation
+          : { type: "idle" },
       modelPhase:
         state.modelPhase === "generating" ? "ready" : state.modelPhase,
     });
@@ -170,7 +173,7 @@ export function createSession({
 
   function handleSnapshot(files: ProjectFiles) {
     if (JSON.stringify(files) !== JSON.stringify(state.files)) {
-      if (state.busy) {
+      if (state.operation.type === "working") {
         turnChanged = true;
       }
       update({ files });
@@ -360,7 +363,7 @@ export function createSession({
     if (!state.linuxReady || !state.files) {
       throw new Error("Start Linux before saving files.");
     }
-    if (state.busy || state.savingFile) {
+    if (state.workspaceLocked) {
       throw new Error("Wait for the current operation before saving.");
     }
     if (state.files[file] !== expected) {
@@ -392,7 +395,7 @@ export function createSession({
       const error = cause instanceof Error ? cause : new Error(String(cause));
       appendMessage("WORKSPACE", error.message, true);
     } finally {
-      finishActiveOperation();
+      update({ operation: { type: "idle" } });
     }
   }
 

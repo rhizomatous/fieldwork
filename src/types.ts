@@ -66,7 +66,8 @@ export interface SessionState extends SessionData {
   readonly bootLabel: string;
   readonly modelReady: boolean;
   readonly loading: boolean;
-  readonly busy: boolean;
+  readonly agentLocked: boolean;
+  readonly workspaceLocked: boolean;
   readonly resettingChat: boolean;
   readonly agentStatus: Status;
   readonly modelStatus: Status;

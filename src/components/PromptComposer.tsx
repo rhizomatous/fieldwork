@@ -25,7 +25,10 @@ export function PromptComposer({ state, session }: PanelProps) {
     if (state.resettingChat) {
       return "Resetting conversation…";
     }
-    if (state.busy) {
+    if (state.operation.type === "resetting-project") {
+      return "Resetting project…";
+    }
+    if (state.canStop) {
       return "Pi is working inside Linux…";
     }
     if (state.canSend) {

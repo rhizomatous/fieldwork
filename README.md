@@ -19,7 +19,7 @@ A useful first prompt for the small default model:
 
 > Add a reset button that resets the little joys counter to zero.
 
-The workspace lives in browser OPFS when available. Clearing site data removes it. **Reset project** restores the three starter files and starts a fresh Pi session. Runtime and guest assets are generated locally and ignored by Git.
+The workspace lives in browser OPFS when available. Clearing site data removes it. **Reset project** restores the three starter files and keeps the conversation. **Reset chat** clears the conversation and Pi’s context while keeping the files. Runtime and guest assets are generated locally and ignored by Git.
 
 ```sh
 npm test
@@ -80,6 +80,10 @@ operation. Named handlers in `src/session.ts` update typed session data directly
 availability for both the controller and React panels. Snapshots are cached until
 stored data changes. Completing a turn preserves model loading and failure
 states; chat reset waits for file saves, and Stop applies only to agent turns.
+`agentLocked` covers prompting, agent work, and chat reset. `workspaceLocked`
+covers every active operation, keeping prompts, manual saves, and resets
+serialized. Model loading can overlap a file save or project reset. Status
+text uses the operation to distinguish agent work from either kind of reset.
 
 Progress updates are accepted only while the model is loading. Fixed loading and
 loaded descriptions are derived from the phase and configuration; errors are

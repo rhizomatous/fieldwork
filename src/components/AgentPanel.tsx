@@ -13,8 +13,8 @@ export function AgentPanel({ state, session }: PanelProps) {
     state.agentStatus.kind === "error" || state.modelStatus.kind === "error";
   const status: Status = failed
     ? { text: "Not ready", kind: "" }
-    : state.busy
-      ? { text: "Working", kind: "busy" }
+    : state.agentLocked
+      ? state.agentStatus
       : ready
         ? { text: "Ready", kind: "ready" }
         : { text: "Not ready", kind: "" };
@@ -25,6 +25,7 @@ export function AgentPanel({ state, session }: PanelProps) {
         <div className="agent-tools">
           <Button
             variant="ghost"
+            destructive
             disabled={!state.canResetChat || state.messages.length === 0}
             onClick={() => session.resetChat()}
             title="Clear conversation and start a fresh agent session; keep app files"

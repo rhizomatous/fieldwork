@@ -1,7 +1,35 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { starter } from "../../shared/starter.ts";
+
 import { LinuxRuntime } from "./linux-runtime.ts";
+
+test("project reset restores starter files without resetting the agent", async () => {
+  const runtime = new LinuxRuntime();
+  const files = Object.fromEntries(
+    Object.keys(starter).map((file) => [`project/${file}`, "edited"]),
+  );
+  runtime.root = {
+    readText: async (path) => files[path],
+    writeFile: async (path, content) => {
+      files[path] = content;
+    },
+  };
+  runtime.command = async () =>
+    assert.fail("Project reset sent an agent command");
+  let snapshot;
+  runtime.addEventListener("snapshot", ({ detail }) => {
+    snapshot = detail;
+  });
+
+  await runtime.reset();
+
+  assert.deepEqual(snapshot, starter);
+  for (const [file, content] of Object.entries(starter)) {
+    assert.equal(files[`project/${file}`], content);
+  }
+});
 
 test("new session waits for its matching guest acknowledgement", async () => {
   const runtime = new LinuxRuntime();

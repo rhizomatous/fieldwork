@@ -20,7 +20,7 @@ export default function WorkspaceEditor({
   const [error, setError] = useState("");
   const dirty = draft !== null && draft.text !== source;
   const conflict = dirty && draft.base !== source;
-  const locked = state.busy || !!state.savingFile;
+  const locked = state.workspaceLocked;
 
   function getStatusText() {
     if (error) {
@@ -32,8 +32,16 @@ export default function WorkspaceEditor({
     if (state.savingFile === file) {
       return "Saving…";
     }
-    if (state.busy) {
-      return "Agent is editing · read only";
+    switch (state.operation.type) {
+      case "saving":
+        return "Saving another file (read only)";
+      case "resetting-chat":
+        return "Resetting conversation (read only)";
+      case "resetting-project":
+        return "Resetting project (read only)";
+      case "prompting":
+      case "working":
+        return "Agent is working (read only)";
     }
     if (dirty) {
       return "Unsaved changes";

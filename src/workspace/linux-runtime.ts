@@ -262,7 +262,6 @@ export class LinuxRuntime extends EventTarget {
     for (const file of PROJECT_FILES) {
       await this.root.writeFile(`project/${file}`, starter[file]);
     }
-    await this.command({ type: "new_session" });
     this.emit("snapshot", await this.snapshot());
   }
 

@@ -54,7 +54,7 @@ export function LinuxPanel({
           destructive
           disabled={!state.canResetProject}
           onClick={onReset}
-          title="Replace index.html, style.css, and script.js with starter files and reset Pi’s session"
+          title="Replace index.html, style.css, and script.js with starter files"
         >
           Reset project
         </Button>

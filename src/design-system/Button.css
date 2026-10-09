@@ -85,6 +85,14 @@
   outline-color: var(--color-danger);
 }
 
+.ds-button--ghost.ds-button--destructive {
+  color: var(--color-text-muted);
+}
+.ds-button--ghost.ds-button--destructive:hover:not(:disabled) {
+  color: var(--color-danger);
+  background: transparent;
+}
+
 .ds-button--destructive:disabled {
   color: var(--color-text-muted);
   border-color: var(--color-border);
