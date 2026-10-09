@@ -4,6 +4,7 @@ This project is a tech demo of a full agentic development environment running lo
 
 ## Rules
 
+- Use Nix for all developer tooling.
 - Use TypeScript for all files.
 - Use the Fieldwork design system in `./src/design-system` for all UI. If you build a component that's shared between many places, extract it into the system.
 - Extract any content shared content between different top-level folders in to `./shared/`

@@ -35,9 +35,11 @@ flowchart LR
 
 You'll need:
 
-- Node.js 22.18+ and npm.
-- Docker with `linux/386` support, only to build the Linux image.
+- Nix
+- Docker (or equivalent with `linux/386` support), only to build the Linux image.
 - A desktop Chromium browser with WebGPU and hardware acceleration enabled, plus enough GPU memory for a 4B model.
+
+Enter the dev environment with `nix develop` or load it automagically with direnv.
 
 ### Launch a dev server
 
@@ -71,5 +73,3 @@ Serve `dist/` statically over HTTPS. Configure these response headers:
 Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Embedder-Policy: credentialless
 ```
-
-
