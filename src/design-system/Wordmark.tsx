@@ -7,9 +7,7 @@ export function Wordmark({ href = "/", label = "Fieldwork home" }) {
       <span className="brand-symbol" aria-hidden="true">
         ⌘
       </span>{" "}
-      <span>
-        fieldwork <span className="brand-aide">aide</span>
-      </span>
+      <span>fieldwork</span>
     </a>
   );
 }

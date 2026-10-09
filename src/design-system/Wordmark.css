@@ -12,7 +12,3 @@
   font-size: var(--font-size-brand-symbol);
   color: var(--color-accent);
 }
-.brand-aide {
-  font-weight: var(--font-weight-light);
-  letter-spacing: var(--letter-spacing-brand-suffix);
-}

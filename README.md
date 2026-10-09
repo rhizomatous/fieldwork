@@ -1,10 +1,14 @@
-# Fieldwork AIDE
+# Fieldwork
 
 Fieldwork is an experimental browser-native local coding agent. It provides a complete agentic coding environment that runs _fully within Chrome_. Yes, you read that right: everything from the agent container to the LLM inference runs within your browser, with no backend services. With Fieldwork, you can ask an agent to update a small website, edit the code alongside the agent, and see a live preview of the results.
 
+<p align="center">
+  <img src="docs/images/fieldwork-app.png" alt="Fieldwork with a completed agent request, running Linux and local inference." width="560" />
+</p>
+
 ## But why?
 
-To show you, reader, that agentic workflows require shockingly less firepower than you'd think.
+To show you, reader, that agentic workflows require shockingly less firepower than you'd think. Or perhaps that browsers provide more firepower than you'd think.
 
 ## How it works
 
@@ -22,13 +26,11 @@ GPU through WebGPU. Model weights are downloaded and cached locally on first use
 
 ```mermaid
 flowchart LR
-    UI["Agent chat pane"] <-->|RPC| P["Pi inside Alpine / v86"]
+    UI["Agent chat pane"] <-->|RPC| P["Pi agent (inside Wanix VM)"]
     P <-->|Custom provider| B["Local inference bridge"]
-    B <--> W["WebLLM worker → WebGPU"]
-    W --> D["LLM health pane"]
+    B <--> W["WebLLM worker (on WebGPU)"]
     P <-->|File tools| F["Shared workspace"]
-    F --> R["Preview adapter"]
-    R --> I["Sandboxed app preview"]
+    F --> I["Sandboxed app preview"]
 ```
 
 ## Develop locally
