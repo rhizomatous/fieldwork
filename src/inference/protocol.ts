@@ -76,11 +76,45 @@ type ActionBranch = {
   additionalProperties: false;
 };
 
+function toolActionSchema(tool: InferenceTool): ActionBranch {
+  return {
+    type: "object",
+    properties: {
+      type: { const: "tool" },
+      name: { const: tool.name },
+      arguments: tool.parameters,
+    },
+    required: ["type", "name", "arguments"],
+    additionalProperties: false,
+  };
+}
+
 function buildActionSchema(
   tools: InferenceTool[],
   { unread, hasToolError }: ReturnType<typeof inspectCurrentTurn>,
-) {
-  const schema: { anyOf: ActionBranch[] } = {
+): { anyOf: ActionBranch[] } {
+  const readTool = tools.find((tool) => tool.name === "read");
+
+  // This workspace is three small, interdependent files. Inspect all of them
+  // before changing any, so the model has the markup, behavior, and styling.
+  if (unread.length && !hasToolError && readTool) {
+    return {
+      anyOf: [
+        toolActionSchema({
+          ...readTool,
+          parameters: {
+            ...readTool.parameters,
+            properties: {
+              ...readTool.parameters.properties,
+              path: { type: "string", enum: unread },
+            },
+          },
+        }),
+      ],
+    };
+  }
+
+  return {
     anyOf: [
       {
         type: "object",
@@ -88,39 +122,9 @@ function buildActionSchema(
         required: ["type", "text"],
         additionalProperties: false,
       },
-      ...tools.map((tool): ActionBranch => ({
-        type: "object",
-        properties: {
-          type: { const: "tool" },
-          name: { const: tool.name },
-          arguments: tool.parameters,
-        },
-        required: ["type", "name", "arguments"],
-        additionalProperties: false,
-      })),
+      ...tools.map(toolActionSchema),
     ],
   };
-
-  // This workspace is three small, interdependent files. Inspect all of them
-  // before changing any, so the model has the markup, behavior, and styling.
-  if (
-    unread.length &&
-    !hasToolError &&
-    tools.some((tool) => tool.name === "read")
-  ) {
-    schema.anyOf = schema.anyOf.filter(
-      (branch) => branch.properties.name?.const === "read",
-    );
-    schema.anyOf[0].properties.arguments = {
-      ...schema.anyOf[0].properties.arguments,
-      properties: {
-        ...schema.anyOf[0].properties.arguments?.properties,
-        path: { type: "string", enum: unread },
-      },
-    };
-  }
-
-  return schema;
 }
 
 function buildSystemPrompt(systemPrompt: string, tools: InferenceTool[]) {
