@@ -13,7 +13,7 @@ export function inferenceRequest(context: InferenceContext) {
   const tools = (context.tools || []).filter((tool) =>
     ["read", "edit", "write", "bash"].includes(tool.name),
   );
-  const inspection = inspectCurrentTurn(context.messages || []);
+  const inspection = inspectCurrentTurn(context.messages);
   const schema = buildActionSchema(tools, inspection);
   const system = buildSystemPrompt(context.systemPrompt || "", tools);
   const transcript = compactContext(editFeedback(context));
@@ -147,7 +147,7 @@ function translateTranscript(transcript: TranscriptMessage[], system: string) {
     if (typeof message.content === "string") {
       content = message.content;
     } else {
-      content = (message.content || [])
+      content = message.content
         .map((block) => {
           if (block.type === "text") {
             return block.text;

@@ -84,7 +84,7 @@ try {
       commandId = id.success ? id.data : undefined;
       const command = commandSchema.parse(value);
 
-      if (!command.id || command.id === lastCommand) {
+      if (command.id === lastCommand) {
         return;
       }
 
@@ -104,7 +104,7 @@ try {
           id: command.id,
           success: true,
         });
-      } else if (command.type === "prompt") {
+      } else {
         if (agent.state.isStreaming) {
           throw new Error("The agent is already working");
         }
@@ -117,8 +117,6 @@ try {
             error: errorMessage(error),
           }),
         );
-      } else {
-        throw new Error("Unsupported bridge command");
       }
     } catch (error) {
       if (!isMissingFile(error)) {

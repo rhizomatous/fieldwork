@@ -58,9 +58,6 @@ async function handleRequest(data: WorkerRequest) {
     }
     return;
   }
-  if (data.type !== "generate") {
-    return;
-  }
   if (!engine || generating) {
     send({ type: "result", id: data.id, error: "The model is not ready." });
     return;

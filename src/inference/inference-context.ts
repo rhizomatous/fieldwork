@@ -10,7 +10,7 @@ function textOf(message: TranscriptMessage) {
   if (typeof message.content === "string") {
     return message.content;
   }
-  return (message.content || [])
+  return message.content
     .filter((block) => block.type === "text")
     .map((block) => block.text)
     .join("\n");
@@ -132,7 +132,7 @@ export function compactContext(
 }
 
 export function editFeedback(context: InferenceContext) {
-  const messages = [...(context.messages || [])];
+  const messages = [...context.messages];
   const last = messages.at(-1);
   if (
     last?.role !== "toolResult" ||

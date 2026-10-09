@@ -123,7 +123,7 @@ export function createSession({
         if (event.isError) {
           appendMessage(
             "TOOL ERROR",
-            (event.result?.content || [])
+            event.result.content
               .filter((x) => x.type === "text")
               .map((x) => x.text)
               .join("\n")
@@ -136,7 +136,7 @@ export function createSession({
         assistantId = null;
         break;
       case "message_update":
-        if (event.assistantMessageEvent?.type === "text_delta") {
+        if (event.assistantMessageEvent.type === "text_delta") {
           const delta = event.assistantMessageEvent.delta || "";
           assistantId ??= appendMessage("PI", "");
           update({
@@ -152,7 +152,7 @@ export function createSession({
         }
         break;
       case "message_end":
-        if (event.message?.errorMessage) {
+        if (event.message.errorMessage) {
           appendMessage("PI", event.message.errorMessage, true);
         }
         break;
@@ -201,7 +201,7 @@ export function createSession({
 
   async function handleWorkerMessage(data: WorkerMessage) {
     if (data.type === "progress" && state.loading) {
-      update({ progress: data.progress || 0, progressMessage: data.text });
+      update({ progress: data.progress, progressMessage: data.text });
     }
 
     if (data.type === "loaded") {

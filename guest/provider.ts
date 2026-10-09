@@ -152,10 +152,7 @@ export function createBrowserProvider(): {
               toolCall: block,
               partial: output,
             });
-          } else if (
-            action.type === "message" &&
-            typeof action.text === "string"
-          ) {
+          } else {
             output.content.push({ type: "text", text: action.text });
 
             stream.push({
@@ -175,8 +172,6 @@ export function createBrowserProvider(): {
               content: action.text,
               partial: output,
             });
-          } else {
-            throw new Error("Invalid model action");
           }
           stream.push({
             type: "done",
