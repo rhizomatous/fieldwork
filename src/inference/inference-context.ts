@@ -17,10 +17,10 @@ function textOf(message: TranscriptMessage) {
 }
 
 function analyzeTurn(current: TranscriptMessage[]) {
-  const calls = new Map<string | undefined, ToolCall & { index: number }>();
+  const calls = new Map<string, ToolCall & { index: number }>();
   const latest = new Map<unknown, string>();
   const successful = new Set<string>();
-  const failed = new Set<string | undefined>();
+  const failed = new Set<string>();
 
   for (const [index, message] of current.entries()) {
     if (message.role === "assistant" && Array.isArray(message.content)) {
@@ -81,10 +81,13 @@ export function compactContext(
   const compacted = current.map((message): TranscriptMessage => {
     if (message.role === "toolResult") {
       const call = calls.get(message.toolCallId);
+      const latestId = call ? latest.get(call.arguments.path) : undefined;
+      const latestCall =
+        latestId === undefined ? undefined : calls.get(latestId);
       if (
         call?.name === "read" &&
         successful.has(call.id) &&
-        (calls.get(latest.get(call.arguments.path))?.index ?? -1) > call.index
+        (latestCall?.index ?? -1) > call.index
       ) {
         return {
           ...message,

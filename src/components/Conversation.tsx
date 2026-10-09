@@ -38,7 +38,7 @@ export function Conversation({ state }: { state: SessionState }) {
         </EmptyState>
       )}
       {state.messages.map((item) =>
-        item.tool ? (
+        item.type === "tool" ? (
           <div key={item.id} className="tool-event">
             <strong>{item.tool} </strong>
             {item.text}

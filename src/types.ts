@@ -16,10 +16,10 @@ export type Status = { text: string; kind: "" | "ready" | "busy" | "error" };
 type ChatMessage = {
   id: number;
   text: string;
-  who?: string;
-  tool?: string;
-  error?: boolean;
-};
+} & (
+  | { type: "message"; who: string; error: boolean; tool?: never }
+  | { type: "tool"; tool: string; who?: never; error?: never }
+);
 export type LinuxPhase =
   | "off"
   | "booting"

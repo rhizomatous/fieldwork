@@ -56,7 +56,9 @@ export function createSession({
 
   function appendMessage(who: string, text: string, error = false) {
     const id = ++nextId;
-    update({ messages: [...state.messages, { id, who, text, error }] });
+    update({
+      messages: [...state.messages, { type: "message", id, who, text, error }],
+    });
     return id;
   }
 
@@ -110,6 +112,7 @@ export function createSession({
           messages: [
             ...state.messages,
             {
+              type: "tool",
               id: ++nextId,
               tool: event.toolName,
               text: (event.args?.path || event.args?.command || "").slice(
