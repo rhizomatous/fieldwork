@@ -1,6 +1,7 @@
 import CodeMirror from "@uiw/react-codemirror";
 import { useState } from "react";
 
+import { errorMessage } from "../../shared/errors.ts";
 import { Button } from "../design-system/Button.tsx";
 import type { PanelProps, ProjectFile } from "../types.ts";
 
@@ -58,7 +59,7 @@ export default function WorkspaceEditor({
       await session.saveFile(file, draft.text, draft.base);
       setDraft(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(errorMessage(cause));
     }
   }
 

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 import "./PreviewPanel.css";
+import { errorMessage } from "../../shared/errors.ts";
 import { Button } from "../design-system/Button.tsx";
 import { EmptyState } from "../design-system/EmptyState.tsx";
 import type { PanelProps, ProjectFile, SessionState } from "../types.ts";
@@ -51,9 +52,7 @@ export function PreviewPanel({ state, session }: PanelProps) {
     try {
       return { channel, html: buildPreview(state.files, channel) };
     } catch (cause) {
-      const previewError =
-        cause instanceof Error ? cause : new Error(String(cause));
-      return { channel, html: "", error: previewError.message };
+      return { channel, html: "", error: errorMessage(cause) };
     }
     // Explicit Refresh must rebuild srcDoc even when the file contents are unchanged.
     // oxlint-disable-next-line react/memo-dependencies, react/exhaustive-deps

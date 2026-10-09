@@ -1,4 +1,5 @@
 import { workerMessageSchema } from "../shared/contracts.ts";
+import { errorMessage } from "../shared/errors.ts";
 import { MODEL } from "../shared/inference-config.ts";
 
 import { gpuSupportError } from "./inference/gpu-support.ts";
@@ -193,8 +194,7 @@ export function createSession({
       update({ modelPhase: "generating" });
       worker.postMessage({ type: "generate", ...request });
     } catch (cause) {
-      const error = cause instanceof Error ? cause : new Error(String(cause));
-      appendMessage("BRIDGE", error.message, true);
+      appendMessage("BRIDGE", errorMessage(cause), true);
       finishActiveOperation();
     }
   }
@@ -226,8 +226,7 @@ export function createSession({
       try {
         await runtime.respond(data);
       } catch (cause) {
-        const error = cause instanceof Error ? cause : new Error(String(cause));
-        appendMessage("BRIDGE", error.message, true);
+        appendMessage("BRIDGE", errorMessage(cause), true);
         finishActiveOperation();
       }
     }
@@ -243,8 +242,8 @@ export function createSession({
     if (request) {
       runtime
         .respond({ id: request, error })
-        .catch((bridgeError: Error) =>
-          appendMessage("BRIDGE", bridgeError.message, true),
+        .catch((bridgeError: unknown) =>
+          appendMessage("BRIDGE", errorMessage(bridgeError), true),
         );
     }
   }
@@ -266,11 +265,10 @@ export function createSession({
           : {}),
       });
     } catch (cause) {
-      const error = cause instanceof Error ? cause : new Error(String(cause));
       update({
         modelPhase: "unsupported",
         gpuAvailable: false,
-        modelError: error.message,
+        modelError: errorMessage(cause),
       });
     }
   }
@@ -313,8 +311,7 @@ export function createSession({
     try {
       await runtime.command({ type: "prompt", message: text });
     } catch (cause) {
-      const error = cause instanceof Error ? cause : new Error(String(cause));
-      appendMessage("WORKSPACE", error.message, true);
+      appendMessage("WORKSPACE", errorMessage(cause), true);
       finishActiveOperation();
     }
     return true;
@@ -328,8 +325,7 @@ export function createSession({
     try {
       await runtime.command({ type: "abort" });
     } catch (cause) {
-      const error = cause instanceof Error ? cause : new Error(String(cause));
-      appendMessage("WORKSPACE", error.message, true);
+      appendMessage("WORKSPACE", errorMessage(cause), true);
       finishActiveOperation();
     }
   }
@@ -348,8 +344,7 @@ export function createSession({
       turnChanged = false;
       update({ messages: [] });
     } catch (cause) {
-      const error = cause instanceof Error ? cause : new Error(String(cause));
-      appendMessage("WORKSPACE", error.message, true);
+      appendMessage("WORKSPACE", errorMessage(cause), true);
     } finally {
       finishActiveOperation();
     }
@@ -392,8 +387,7 @@ export function createSession({
     try {
       await runtime.reset();
     } catch (cause) {
-      const error = cause instanceof Error ? cause : new Error(String(cause));
-      appendMessage("WORKSPACE", error.message, true);
+      appendMessage("WORKSPACE", errorMessage(cause), true);
     } finally {
       update({ operation: { type: "idle" } });
     }
