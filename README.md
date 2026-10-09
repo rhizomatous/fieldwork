@@ -1,6 +1,6 @@
 # Fieldwork
 
-Fieldwork is an experimental browser-native local coding agent. It provides a complete agentic coding environment that runs _fully within Chrome_. Yes, you read that right: everything from the agent container to the LLM inference runs within your browser, with no backend services. With Fieldwork, you can ask an agent to update a small website, edit the code alongside the agent, and see a live preview of the results.
+Fieldwork is an experimental browser-native local coding agent. It provides a complete agentic coding environment that runs _fully within Chrome_. Yes, you read that right: everything from the agent container to the LLM inference runs within your browser, with no backend services. With Fieldwork, you can ask an agent to update a small website, edit the code alongside the agent, and see a live preview of the results. [Try it here!](https://rhizomatous.github.io/fieldwork/)
 
 <p align="center">
   <img src="docs/images/fieldwork-app.png" alt="Fieldwork with a completed agent request, running Linux and local inference." width="560" />
