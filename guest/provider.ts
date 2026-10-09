@@ -4,10 +4,10 @@ import fs from "node:fs";
 import { createAssistantMessageEventStream } from "@mariozechner/pi-ai";
 import type {
   AssistantMessage,
+  Model,
   ToolCall,
   StreamFunction,
 } from "@mariozechner/pi-ai";
-import type { ProviderConfig } from "@mariozechner/pi-coding-agent";
 
 import {
   inferenceRequestSchema,
@@ -17,38 +17,32 @@ import type { InferenceResult } from "../shared/contracts.ts";
 import { errorMessage, isMissingFile } from "../shared/errors.ts";
 import { INFERENCE_LIMITS } from "../shared/inference-config.ts";
 
-export type BrowserProviderConfig = Required<
-  Pick<ProviderConfig, "baseUrl" | "api" | "models">
-> & { streamSimple: StreamFunction };
-interface ProviderHost {
-  on(name: "agent_start", handler: () => void): void;
-  registerProvider(name: "browser", provider: BrowserProviderConfig): void;
-}
-
 const dir = process.env.BRIDGE_DIR || "/bridge";
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export default function browserProvider(pi: ProviderHost) {
+export function createBrowserProvider(): {
+  model: Model<"browser-local">;
+  streamSimple: StreamFunction;
+  resetTurn: () => void;
+} {
   let rounds = 0;
 
-  pi.on("agent_start", () => {
-    rounds = 0;
-  });
-
-  pi.registerProvider("browser", {
-    baseUrl: "http://browser.invalid",
-    api: "browser-local",
-    models: [
-      {
-        id: "local",
-        name: "Browser WebGPU",
-        reasoning: false,
-        input: ["text"],
-        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-        contextWindow: INFERENCE_LIMITS.contextTokens,
-        maxTokens: INFERENCE_LIMITS.maxOutputTokens,
-      },
-    ],
+  return {
+    model: {
+      id: "local",
+      name: "Browser WebGPU",
+      api: "browser-local",
+      provider: "browser",
+      baseUrl: "http://browser.invalid",
+      reasoning: false,
+      input: ["text"],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: INFERENCE_LIMITS.contextTokens,
+      maxTokens: INFERENCE_LIMITS.maxOutputTokens,
+    },
+    resetTurn() {
+      rounds = 0;
+    },
     streamSimple(model, context, options) {
       const stream = createAssistantMessageEventStream();
       const id = randomUUID();
@@ -209,5 +203,5 @@ export default function browserProvider(pi: ProviderHost) {
 
       return stream;
     },
-  });
+  };
 }

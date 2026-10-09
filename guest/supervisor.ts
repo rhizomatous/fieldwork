@@ -6,8 +6,6 @@ import { commandSchema, requestIdSchema } from "../shared/contracts.ts";
 import type { AgentEvent } from "../shared/contracts.ts";
 import { errorMessage, isMissingFile } from "../shared/errors.ts";
 
-import type { BrowserProviderConfig } from "./provider.ts";
-
 const dir = process.env.BRIDGE_DIR || "/bridge";
 const cwd = process.env.PROJECT_DIR || "/project";
 
@@ -29,7 +27,7 @@ emit({
 try {
   const [
     { Agent },
-    { default: browserProvider },
+    { createBrowserProvider },
     { createReadTool, createWriteTool, createEditTool, createBashTool },
   ] = await Promise.all([
     import("@mariozechner/pi-agent-core"),
@@ -37,31 +35,12 @@ try {
     import("@mariozechner/pi-coding-agent"),
   ]);
 
-  let provider: BrowserProviderConfig | undefined;
-  const hooks = new Map<string, () => void>();
-
-  browserProvider({
-    on: (name, fn) => hooks.set(name, fn),
-    registerProvider: (_, config) => {
-      provider = config;
-    },
-  });
-
-  if (!provider) {
-    throw new Error("Browser provider was not registered");
-  }
-
-  const model = {
-    ...provider.models[0],
-    api: provider.api,
-    provider: "browser",
-    baseUrl: provider.baseUrl,
-  };
+  const provider = createBrowserProvider();
   const agent = new Agent({
     initialState: {
       systemPrompt:
         "You edit a small vanilla website in /project. The only app files are index.html, style.css, script.js. Read relevant files before editing. Keep files short. Do not install dependencies or use the network. Use relative references style.css and script.js in HTML. Complete the requested change, then briefly explain what changed.",
-      model,
+      model: provider.model,
       thinkingLevel: "off",
       tools: [
         createReadTool(cwd, { autoResizeImages: false }),
@@ -75,7 +54,9 @@ try {
   });
 
   agent.subscribe((event) => {
-    hooks.get(event.type)?.();
+    if (event.type === "agent_start") {
+      provider.resetTurn();
+    }
     emit(event);
   });
 
