@@ -4,7 +4,12 @@ import "./PreviewPanel.css";
 import { errorMessage } from "../../shared/errors.ts";
 import { Button } from "../design-system/Button.tsx";
 import { EmptyState } from "../design-system/EmptyState.tsx";
-import type { PanelProps, ProjectFile, SessionState } from "../types.ts";
+import type {
+  PanelProps,
+  ProjectFile,
+  ProjectFiles,
+  SessionState,
+} from "../types.ts";
 import { buildPreview } from "../workspace/preview.ts";
 
 const WorkspaceEditor = lazy(() => import("./WorkspaceEditor.tsx"));
@@ -30,15 +35,10 @@ function getEmptyWorkspaceCopy(state: SessionState) {
   };
 }
 
-export function PreviewPanel({ state, session }: PanelProps) {
-  const [tab, setTab] = useState<WorkspaceTab>("Preview");
-  const [editorsOpened, setEditorsOpened] = useState(false);
-  function selectTab(next: WorkspaceTab) {
-    setTab(next);
-    if (next !== "Preview") {
-      setEditorsOpened(true);
-    }
-  }
+function usePreviewDocument(
+  files: ProjectFiles | null,
+  previewVersion: number,
+) {
   const [error, setError] = useState<{ channel: string; text: string } | null>(
     null,
   );
@@ -46,17 +46,17 @@ export function PreviewPanel({ state, session }: PanelProps) {
   // Metrics and conversation updates must not reload the user's running app.
   const preview = useMemo(() => {
     const channel = crypto.randomUUID();
-    if (!state.files) {
+    if (!files) {
       return { channel, html: "" };
     }
     try {
-      return { channel, html: buildPreview(state.files, channel) };
+      return { channel, html: buildPreview(files, channel) };
     } catch (cause) {
       return { channel, html: "", error: errorMessage(cause) };
     }
     // Explicit Refresh must rebuild srcDoc even when the file contents are unchanged.
     // oxlint-disable-next-line react/memo-dependencies, react/exhaustive-deps
-  }, [state.files, state.previewVersion]);
+  }, [files, previewVersion]);
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (
@@ -76,7 +76,26 @@ export function PreviewPanel({ state, session }: PanelProps) {
   }, [preview.channel]);
   const errorText =
     preview.error || (error?.channel === preview.channel ? error.text : "");
+  return { frame, preview, errorText };
+}
+
+export function PreviewPanel({ state, session }: PanelProps) {
+  const [tab, setTab] = useState<WorkspaceTab>("Preview");
+  const [editorsOpened, setEditorsOpened] = useState(false);
   const emptyWorkspace = getEmptyWorkspaceCopy(state);
+
+  function selectTab(next: WorkspaceTab) {
+    setTab(next);
+    if (next !== "Preview") {
+      setEditorsOpened(true);
+    }
+  }
+
+  const { frame, preview, errorText } = usePreviewDocument(
+    state.files,
+    state.previewVersion,
+  );
+  
   return (
     <section className="preview-panel" aria-label="Workspace">
       <div className="pane-heading">

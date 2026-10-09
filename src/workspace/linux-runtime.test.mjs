@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { getEventListeners } from "node:events";
 import test from "node:test";
 
 import { starter } from "../../shared/starter.ts";
@@ -54,6 +55,43 @@ test("new session waits for its matching guest acknowledgement", async () => {
 
   await pending;
   assert.equal(resolved, true);
+});
+
+test("reset acknowledgement is subscribed before the command is written", async () => {
+  const runtime = new LinuxRuntime();
+  runtime.root = {
+    writeFile: async (_, text) => {
+      const { id } = JSON.parse(text);
+      runtime.emit("event", { type: "response", id, success: true });
+    },
+    rename: async () => {},
+  };
+
+  await runtime.command({ type: "new_session" });
+  assert.equal(getEventListeners(runtime, "event").length, 0);
+});
+
+test("reset acknowledgement listeners are cleaned up on write failure and timeout", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const runtime = new LinuxRuntime();
+  runtime.root = {
+    writeFile: async () => {
+      throw new Error("Write failed");
+    },
+    rename: async () => {},
+  };
+  await assert.rejects(
+    runtime.command({ type: "new_session" }),
+    /Write failed/,
+  );
+  assert.equal(getEventListeners(runtime, "event").length, 0);
+
+  runtime.root.writeFile = async () => {};
+  const pending = runtime.command({ type: "new_session" });
+  const rejected = assert.rejects(pending, /did not confirm/);
+  t.mock.timers.tick(15000);
+  await rejected;
+  assert.equal(getEventListeners(runtime, "event").length, 0);
 });
 
 test("file saves validate names and base content before atomic replacement", async () => {

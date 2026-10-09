@@ -3,7 +3,7 @@ import fs from "node:fs";
 import type { AgentEvent as PiAgentEvent } from "@mariozechner/pi-agent-core";
 
 import { commandSchema, requestIdSchema } from "../shared/contracts.ts";
-import type { AgentEvent } from "../shared/contracts.ts";
+import type { AgentEvent, Command } from "../shared/contracts.ts";
 import { errorMessage, isMissingFile } from "../shared/errors.ts";
 
 const dir = process.env.BRIDGE_DIR || "/bridge";
@@ -64,6 +64,37 @@ try {
     type: "ready",
   });
 
+  function handleCommand(command: Command) {
+    if (command.type === "abort") {
+      agent.abort();
+    } else if (command.type === "new_session") {
+      if (agent.state.isStreaming) {
+        throw new Error("Stop the agent before resetting");
+      }
+
+      agent.reset();
+
+      emit({
+        type: "response",
+        id: command.id,
+        success: true,
+      });
+    } else {
+      if (agent.state.isStreaming) {
+        throw new Error("The agent is already working");
+      }
+
+      agent.prompt(command.message).catch((error) =>
+        emit({
+          type: "response",
+          id: command.id,
+          success: false,
+          error: errorMessage(error),
+        }),
+      );
+    }
+  }
+
   let lastCommand = "";
   let lastCommandText = "";
 
@@ -90,34 +121,7 @@ try {
 
       lastCommand = command.id;
 
-      if (command.type === "abort") {
-        agent.abort();
-      } else if (command.type === "new_session") {
-        if (agent.state.isStreaming) {
-          throw new Error("Stop the agent before resetting");
-        }
-
-        agent.reset();
-
-        emit({
-          type: "response",
-          id: command.id,
-          success: true,
-        });
-      } else {
-        if (agent.state.isStreaming) {
-          throw new Error("The agent is already working");
-        }
-
-        agent.prompt(command.message).catch((error) =>
-          emit({
-            type: "response",
-            id: command.id,
-            success: false,
-            error: errorMessage(error),
-          }),
-        );
-      }
+      handleCommand(command);
     } catch (error) {
       if (!isMissingFile(error)) {
         emit({

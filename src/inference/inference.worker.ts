@@ -2,7 +2,11 @@ import type { MLCEngine } from "@mlc-ai/web-llm";
 import { CreateMLCEngine } from "@mlc-ai/web-llm";
 
 import { workerRequestSchema } from "../../shared/contracts.ts";
-import type { WorkerMessage, WorkerRequest } from "../../shared/contracts.ts";
+import type {
+  InferenceRequest,
+  WorkerMessage,
+  WorkerRequest,
+} from "../../shared/contracts.ts";
 import { errorMessage } from "../../shared/errors.ts";
 import { INFERENCE_LIMITS } from "../../shared/inference-config.ts";
 
@@ -30,34 +34,44 @@ async function handleRequest(data: WorkerRequest) {
     return;
   }
   if (data.type === "load") {
-    try {
-      const adapter = await navigator.gpu?.requestAdapter({
-        powerPreference: "high-performance",
-      });
-      const compatibilityError = gpuSupportError(adapter);
-      if (compatibilityError) {
-        throw new Error(compatibilityError);
-      }
-      await engine?.unload();
-      engine = await CreateMLCEngine(
-        data.model,
-        {
-          initProgressCallback: (progress) =>
-            send({
-              type: "progress",
-              progress: progress.progress,
-              text: progress.text,
-            }),
-        },
-        { context_window_size: INFERENCE_LIMITS.contextTokens },
-      );
-      send({ type: "loaded" });
-    } catch (error) {
-      engine = undefined;
-      send({ type: "load-error", error: errorMessage(error) });
-    }
-    return;
+    return loadModel(data.model);
   }
+  return generate(data);
+}
+
+async function loadModel(model: string) {
+  try {
+    const adapter = await navigator.gpu?.requestAdapter({
+      powerPreference: "high-performance",
+    });
+    const compatibilityError = gpuSupportError(adapter);
+    
+    if (compatibilityError) {
+      throw new Error(compatibilityError);
+    }
+
+    await engine?.unload();
+
+    engine = await CreateMLCEngine(
+      model,
+      {
+        initProgressCallback: (progress) =>
+          send({
+            type: "progress",
+            progress: progress.progress,
+            text: progress.text,
+          }),
+      },
+      { context_window_size: INFERENCE_LIMITS.contextTokens },
+    );
+    send({ type: "loaded" });
+  } catch (error) {
+    engine = undefined;
+    send({ type: "load-error", error: errorMessage(error) });
+  }
+}
+
+async function generate(data: InferenceRequest) {
   if (!engine || generating) {
     send({ type: "result", id: data.id, error: "The model is not ready." });
     return;

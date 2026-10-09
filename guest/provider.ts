@@ -4,6 +4,7 @@ import fs from "node:fs";
 import { createAssistantMessageEventStream } from "@mariozechner/pi-ai";
 import type {
   AssistantMessage,
+  Context,
   Model,
   ToolCall,
   StreamFunction,
@@ -19,6 +20,54 @@ import { INFERENCE_LIMITS } from "../shared/inference-config.ts";
 
 const dir = process.env.BRIDGE_DIR || "/bridge";
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function requestInference(
+  context: Context,
+  id: string,
+  signal?: AbortSignal,
+): Promise<InferenceResult> {
+  const responsePath = `${dir}/response-${id}.json`;
+  try {
+    fs.writeFileSync(
+      `${dir}/request.tmp`,
+      JSON.stringify(inferenceRequestSchema.parse({ id, context })),
+    );
+    fs.renameSync(`${dir}/request.tmp`, `${dir}/request.json`);
+
+    const deadline = Date.now() + 240_000;
+    let response: InferenceResult | undefined;
+
+    while (Date.now() < deadline) {
+      if (signal?.aborted) {
+        throw new Error("Stopped");
+      }
+
+      try {
+        response = parseInferenceResult(
+          JSON.parse(fs.readFileSync(responsePath, "utf8")),
+          id,
+        );
+        break;
+      } catch (error) {
+        if (!isMissingFile(error)) {
+          throw error;
+        }
+      }
+
+      await pause(100);
+    }
+
+    if (!response) {
+      throw new Error("Local inference timed out");
+    }
+
+    return response;
+  } finally {
+    try {
+      fs.unlinkSync(responsePath);
+    } catch {}
+  }
+}
 
 export function createBrowserProvider(): {
   model: Model<"browser-local">;
@@ -46,7 +95,6 @@ export function createBrowserProvider(): {
     streamSimple(model, context, options) {
       const stream = createAssistantMessageEventStream();
       const id = randomUUID();
-      const responsePath = `${dir}/response-${id}.json`;
       const output: AssistantMessage = {
         role: "assistant",
         content: [],
@@ -77,38 +125,7 @@ export function createBrowserProvider(): {
           }
 
           stream.push({ type: "start", partial: output });
-          fs.writeFileSync(
-            `${dir}/request.tmp`,
-            JSON.stringify(inferenceRequestSchema.parse({ id, context })),
-          );
-          fs.renameSync(`${dir}/request.tmp`, `${dir}/request.json`);
-
-          const deadline = Date.now() + 240_000;
-          let response: InferenceResult | undefined;
-
-          while (Date.now() < deadline) {
-            if (options?.signal?.aborted) {
-              throw new Error("Stopped");
-            }
-
-            try {
-              response = parseInferenceResult(
-                JSON.parse(fs.readFileSync(responsePath, "utf8")),
-                id,
-              );
-              break;
-            } catch (error) {
-              if (!isMissingFile(error)) {
-                throw error;
-              }
-            }
-
-            await pause(100);
-          }
-
-          if (!response) {
-            throw new Error("Local inference timed out");
-          }
+          const response = await requestInference(context, id, options?.signal);
 
           if (response.error !== undefined) {
             throw new Error(response.error);
@@ -188,10 +205,6 @@ export function createBrowserProvider(): {
             error: output,
           });
         } finally {
-          try {
-            fs.unlinkSync(responsePath);
-          } catch {}
-
           stream.end();
         }
       })();

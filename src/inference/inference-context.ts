@@ -16,29 +16,7 @@ function textOf(message: TranscriptMessage) {
     .join("\n");
 }
 
-export function compactContext(
-  transcript: TranscriptMessage[],
-): TranscriptMessage[] {
-  const lastUser = transcript.findLastIndex(
-    (message) => message.role === "user",
-  );
-  if (lastUser < 0) {
-    return transcript;
-  }
-  const previous = transcript
-    .slice(0, lastUser)
-    .filter(
-      (message) =>
-        message.role === "user" ||
-        (message.role === "assistant" && textOf(message)),
-    )
-    .slice(-4)
-    .map((message) => ({
-      role:
-        message.role === "user" ? ("user" as const) : ("assistant" as const),
-      content: textOf(message).slice(0, 1000),
-    }));
-  const current = transcript.slice(lastUser);
+function analyzeTurn(current: TranscriptMessage[]) {
   const calls = new Map<string | undefined, ToolCall & { index: number }>();
   const latest = new Map<unknown, string>();
   const successful = new Set<string>();
@@ -71,6 +49,34 @@ export function compactContext(
       }
     }
   }
+
+  return { calls, latest, successful, failed };
+}
+
+export function compactContext(
+  transcript: TranscriptMessage[],
+): TranscriptMessage[] {
+  const lastUser = transcript.findLastIndex(
+    (message) => message.role === "user",
+  );
+  if (lastUser < 0) {
+    return transcript;
+  }
+  const previous = transcript
+    .slice(0, lastUser)
+    .filter(
+      (message) =>
+        message.role === "user" ||
+        (message.role === "assistant" && textOf(message)),
+    )
+    .slice(-4)
+    .map((message) => ({
+      role:
+        message.role === "user" ? ("user" as const) : ("assistant" as const),
+      content: textOf(message).slice(0, 1000),
+    }));
+  const current = transcript.slice(lastUser);
+  const { calls, latest, successful, failed } = analyzeTurn(current);
 
   const compacted = current.map((message): TranscriptMessage => {
     if (message.role === "toolResult") {

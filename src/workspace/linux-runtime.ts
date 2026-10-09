@@ -69,6 +69,15 @@ export class LinuxRuntime extends EventTarget {
   }
 
   async boot(mount: HTMLElement) {
+    await this.initializeNamespace(mount);
+    await this.prepareWorkspace();
+    this.emit("snapshot", await this.snapshot());
+    this.running = true;
+    this.poll();
+    this.startGuest();
+  }
+
+  private async initializeNamespace(mount: HTMLElement) {
     const response = await fetch("/agent-rootfs.tgz", { method: "HEAD" });
     if (
       !response.ok ||
@@ -127,6 +136,9 @@ export class LinuxRuntime extends EventTarget {
     mount.append(this.system);
     await ready;
     this.root = this.system.root;
+  }
+
+  private async prepareWorkspace() {
     await this.root.makeDirAll("bridge");
     await this.root.makeDirAll("project");
     try {
@@ -145,9 +157,9 @@ export class LinuxRuntime extends EventTarget {
         await this.root.writeFile(`project/${file}`, starter[file]);
       }
     }
-    this.emit("snapshot", await this.snapshot());
-    this.running = true;
-    this.poll();
+  }
+
+  private startGuest() {
     const vm = document.createElement("wanix-vm");
     vm.id = "guest";
     vm.setAttribute("mem", "512M");
@@ -192,45 +204,50 @@ export class LinuxRuntime extends EventTarget {
       throw new Error("Linux is not booted");
     }
     const command = commandSchema.parse({ ...input, id: crypto.randomUUID() });
-    const { id, type } = command;
-    let cleanup: (() => void) | undefined;
-    // Reset must finish in Pi before another prompt can replace the mailbox.
-    const acknowledged =
-      type === "new_session"
-        ? new Promise<void>((resolve, reject) => {
-            const onEvent = ({ detail }: CustomEvent<AgentEvent>) => {
-              if (detail.type === "response" && detail.id === id) {
-                cleanup?.();
-                if (detail.success) {
-                  resolve();
-                } else {
-                  reject(new Error(detail.error || "Session reset failed"));
-                }
-              }
-            };
-            const timer = setTimeout(() => {
-              cleanup?.();
-              reject(
-                new Error(
-                  "Pi did not confirm the reset. Reload Linux before continuing.",
-                ),
-              );
-            }, 15000);
-            cleanup = () => {
-              clearTimeout(timer);
-              this.removeEventListener("event", onEvent as EventListener);
-            };
-            this.addEventListener("event", onEvent);
-          })
-        : Promise.resolve();
+    // Subscribe before writing: the guest may acknowledge immediately.
+    const acknowledgement =
+      command.type === "new_session"
+        ? this.waitForAcknowledgement(command.id)
+        : undefined;
     try {
       await Promise.all([
         this.atomic("bridge/command.json", command),
-        acknowledged,
+        acknowledgement?.promise,
       ]);
     } finally {
-      cleanup?.();
+      acknowledgement?.dispose();
     }
+  }
+
+  private waitForAcknowledgement(id: string) {
+    let cleanup: (() => void) | undefined;
+    const promise = new Promise<void>((resolve, reject) => {
+      const onEvent = ({ detail }: CustomEvent<AgentEvent>) => {
+        if (detail.type !== "response" || detail.id !== id) {
+          return;
+        }
+        cleanup?.();
+        if (detail.success) {
+          resolve();
+        } else {
+          reject(new Error(detail.error || "Session reset failed"));
+        }
+      };
+      const timer = setTimeout(() => {
+        cleanup?.();
+        reject(
+          new Error(
+            "Pi did not confirm the reset. Reload Linux before continuing.",
+          ),
+        );
+      }, 15000);
+      cleanup = () => {
+        clearTimeout(timer);
+        this.removeEventListener("event", onEvent as EventListener);
+      };
+      this.addEventListener("event", onEvent);
+    });
+    return { promise, dispose: () => cleanup?.() };
   }
 
   async atomic(path: string, value: unknown) {
@@ -277,31 +294,7 @@ export class LinuxRuntime extends EventTarget {
           .filter((name): name is string => typeof name === "string")
           .toSorted();
         for (const name of names.filter((n) => /^event-\d+\.json$/.test(n))) {
-          const text = await this.root.readText(`bridge/${name}`);
-          await this.root.remove(`bridge/${name}`);
-          let event;
-          try {
-            event = parseAgentEvent(JSON.parse(text));
-          } catch (error) {
-            this.emit(
-              "diagnostic",
-              `Invalid guest event ${name}: ${errorMessage(error)}`,
-            );
-            continue;
-          }
-          if (!event) {
-            continue;
-          }
-          if (event.type === "ready") {
-            clearTimeout(this.bootTimer);
-          }
-          this.emit("event", event);
-          if (
-            event.type === "tool_execution_end" ||
-            event.type === "agent_end"
-          ) {
-            this.emit("snapshot", await this.snapshot());
-          }
+          await this.receiveEventFile(name);
         }
         if (names.includes("request.json")) {
           const text = await this.root.readText("bridge/request.json");
@@ -317,6 +310,31 @@ export class LinuxRuntime extends EventTarget {
         }
       }
       await delay(250);
+    }
+  }
+
+  private async receiveEventFile(name: string) {
+    const text = await this.root.readText(`bridge/${name}`);
+    await this.root.remove(`bridge/${name}`);
+    let event;
+    try {
+      event = parseAgentEvent(JSON.parse(text));
+    } catch (error) {
+      this.emit(
+        "diagnostic",
+        `Invalid guest event ${name}: ${errorMessage(error)}`,
+      );
+      return;
+    }
+    if (!event) {
+      return;
+    }
+    if (event.type === "ready") {
+      clearTimeout(this.bootTimer);
+    }
+    this.emit("event", event);
+    if (event.type === "tool_execution_end" || event.type === "agent_end") {
+      this.emit("snapshot", await this.snapshot());
     }
   }
 
