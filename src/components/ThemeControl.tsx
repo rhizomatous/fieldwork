@@ -20,7 +20,7 @@ export function ThemeControl() {
       document.documentElement.dataset.themePreference = preference;
       document.querySelector<HTMLMetaElement>(
         'meta[name="theme-color"]',
-      )!.content = theme === "dark" ? "#191813" : "#f6f5f1";
+      )!.content = theme === "dark" ? "#1a1623" : "#f7f2ff";
     };
     apply();
     media.addEventListener("change", apply);

@@ -2,20 +2,20 @@
 :root {
   color-scheme: light;
   /* Surfaces, from page canvas to embedded content. */
-  --color-bg-canvas: oklch(97% 0.008 90);
-  --color-bg-surface: oklch(99% 0.004 90);
-  --color-bg-hover: oklch(94% 0.012 90);
-  --color-bg-preview: oklch(92% 0.01 90);
-  --color-bg-frame: oklch(96% 0.012 90);
-  --color-bg-terminal: oklch(20% 0.005 90);
+  --color-bg-canvas: oklch(97% 0.025 300);
+  --color-bg-surface: oklch(99% 0.025 300);
+  --color-bg-hover: oklch(94% 0.025 300);
+  --color-bg-preview: oklch(92% 0.01 300);
+  --color-bg-frame: oklch(96% 0.025 300);
+  --color-bg-terminal: oklch(20% 0.02 300);
 
   /* Content and boundaries. */
-  --color-text: oklch(28% 0.015 90);
-  --color-text-muted: oklch(50% 0.015 90);
-  --color-text-placeholder: oklch(62% 0.01 90);
-  --color-text-on-accent: oklch(98% 0.006 90);
-  --color-border: oklch(89% 0.012 90);
-  --color-border-strong: oklch(82% 0.015 90);
+  --color-text: oklch(28% 0.015 300);
+  --color-text-muted: oklch(50% 0.015 300);
+  --color-text-placeholder: oklch(62% 0.01 300);
+  --color-text-on-accent: oklch(98% 0.006 300);
+  --color-border: oklch(89% 0.025 300);
+  --color-border-strong: oklch(82% 0.015 300);
 
   /* Editor syntax. */
   --color-code-keyword: oklch(46% 0.12 310);
@@ -24,13 +24,13 @@
   --color-code-selection: oklch(from var(--color-accent) l c h / 0.18);
 
   /* Brand and interaction. */
-  --color-accent: oklch(43% 0.065 145);
-  --color-accent-hover: oklch(36% 0.06 145);
+  --color-accent: oklch(48% 0.19 300);
+  --color-accent-hover: oklch(41% 0.18 300);
   --color-focus: var(--color-accent);
   --color-focus-halo: oklch(from var(--color-focus) l c h / 0.1);
 
   /* Status and destructive actions. */
-  --color-status-idle: oklch(73% 0.01 90);
+  --color-status-idle: oklch(73% 0.01 300);
   --color-status-ready: var(--color-accent);
   --color-status-busy: oklch(64% 0.12 75);
   --color-danger: oklch(47% 0.16 30);
@@ -39,38 +39,37 @@
   --color-danger-hover: oklch(from var(--color-danger) l c h / 0.06);
 
   /* Shared shadow hue; opacity reflects elevation. */
-  --color-shadow: oklch(20% 0.01 90);
+  --color-shadow: oklch(20% 0.01 300);
   --color-shadow-frame: oklch(from var(--color-shadow) l c h / 0.06);
   --color-shadow-overlay: oklch(from var(--color-shadow) l c h / 0.18);
 }
 
-/* Warm charcoal surfaces with a lighter sage accent. */
 :root[data-theme="dark"] {
   color-scheme: dark;
   --color-code-keyword: oklch(78% 0.1 310);
   --color-code-number: oklch(80% 0.1 70);
   --color-code-property: oklch(78% 0.07 235);
-  --color-bg-canvas: oklch(21% 0.008 90);
-  --color-bg-surface: oklch(24% 0.008 90);
-  --color-bg-hover: oklch(29% 0.012 90);
-  --color-bg-preview: oklch(18% 0.008 90);
-  --color-bg-frame: oklch(22% 0.012 90);
-  --color-bg-terminal: oklch(17% 0.005 90);
-  --color-text: oklch(92% 0.01 90);
-  --color-text-muted: oklch(72% 0.015 90);
-  --color-text-placeholder: oklch(64% 0.01 90);
-  --color-text-on-accent: oklch(20% 0.02 145);
-  --color-border: oklch(34% 0.012 90);
-  --color-border-strong: oklch(43% 0.015 90);
-  --color-accent: oklch(76% 0.075 145);
-  --color-accent-hover: oklch(82% 0.07 145);
+  --color-bg-canvas: oklch(21% 0.025 300);
+  --color-bg-surface: oklch(24% 0.025 300);
+  --color-bg-hover: oklch(29% 0.025 300);
+  --color-bg-preview: oklch(18% 0.025 300);
+  --color-bg-frame: oklch(22% 0.025 300);
+  --color-bg-terminal: oklch(17% 0.02 300);
+  --color-text: oklch(92% 0.01 300);
+  --color-text-muted: oklch(72% 0.015 300);
+  --color-text-placeholder: oklch(64% 0.01 300);
+  --color-text-on-accent: oklch(20% 0.04 300);
+  --color-border: oklch(34% 0.025 300);
+  --color-border-strong: oklch(43% 0.015 300);
+  --color-accent: oklch(78% 0.12 300);
+  --color-accent-hover: oklch(84% 0.09 300);
   --color-focus-halo: oklch(from var(--color-focus) l c h / 0.2);
-  --color-status-idle: oklch(55% 0.01 90);
+  --color-status-idle: oklch(55% 0.01 300);
   --color-status-busy: oklch(78% 0.12 75);
   --color-danger: oklch(76% 0.12 30);
   --color-danger-surface: oklch(29% 0.035 30);
   --color-danger-hover: oklch(from var(--color-danger) l c h / 0.12);
-  --color-shadow: oklch(10% 0.01 90);
+  --color-shadow: oklch(10% 0.01 300);
   --color-shadow-frame: oklch(from var(--color-shadow) l c h / 0.2);
   --color-shadow-overlay: oklch(from var(--color-shadow) l c h / 0.4);
 }
